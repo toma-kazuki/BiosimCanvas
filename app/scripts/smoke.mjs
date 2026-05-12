@@ -80,3 +80,7 @@ console.log(`  modules:   ${moduleCount}`);
 console.log(`  endpoints: ${endpointCount}`);
 console.log(`  sensors:   ${sensorCount}`);
 console.log(`  globals.runTillN = ${root.Globals?.[0]?.["@_runTillN"]}`);
+
+// Round-trip check: re-parse the parsed-then-counted document. This script
+// is XML-parser only (no TS modules); the round-trip sanity check for the
+// emitter happens in `app/scripts/roundtrip.mjs`.

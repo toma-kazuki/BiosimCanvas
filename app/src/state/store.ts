@@ -19,14 +19,19 @@ import {
   setMalfunction,
 } from "../domain/mutations";
 
+export type CanvasView = "schematic" | "xml";
+
 interface CanvasState {
   doc: BiosimDocument | null;
   selectedModuleName: string | null;
+  /** Active center-canvas view. */
+  view: CanvasView;
   /** Surface short-lived banner text (rename collisions, etc.). */
   toast: string | null;
 
   setDoc: (doc: BiosimDocument | null) => void;
   selectModule: (name: string | null) => void;
+  setView: (v: CanvasView) => void;
   setToast: (msg: string | null) => void;
 
   patchGlobals: (patch: Partial<Globals>) => void;
@@ -60,10 +65,12 @@ function requireDoc(state: CanvasState): BiosimDocument {
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   doc: null,
   selectedModuleName: null,
+  view: "schematic",
   toast: null,
 
   setDoc: (doc) => set({ doc, selectedModuleName: null, toast: null }),
   selectModule: (name) => set({ selectedModuleName: name }),
+  setView: (v) => set({ view: v }),
   setToast: (msg) => set({ toast: msg }),
 
   patchGlobals: (patch) => set({ doc: patchGlobals(requireDoc(get()), patch) }),

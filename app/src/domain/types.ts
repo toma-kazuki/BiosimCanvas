@@ -86,6 +86,8 @@ export interface SensorSpec {
   moduleName: string;
   /** the environment the sensor reads from */
   input: string;
+  /** subsystem wrapper the sensor lives under (`environment`, etc.). */
+  subsystem: Subsystem;
   gasType?: string;
   alarms: AlarmBand[];
   /** optional noise filter (preserved verbatim for now) */

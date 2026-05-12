@@ -76,13 +76,16 @@ export function parseBiosim(xml: string, sourceName?: string): BiosimDocument {
   if (sensorsRoot) {
     for (const subsystemKey of Object.keys(sensorsRoot)) {
       if (subsystemKey.startsWith(ATTR_PREFIX)) continue;
+      const subsystem = isSubsystem(subsystemKey)
+        ? (subsystemKey as Subsystem)
+        : "environment";
       const items = sensorsRoot[subsystemKey] as XmlNode[];
       for (const wrapper of items) {
         for (const tag of Object.keys(wrapper)) {
           if (tag.startsWith(ATTR_PREFIX)) continue;
           const nodes = wrapper[tag] as XmlNode[];
           for (const node of nodes) {
-            sensors.push(parseSensor(tag, node));
+            sensors.push(parseSensor(tag, node, subsystem));
           }
         }
       }
@@ -216,7 +219,7 @@ function parseCrewPerson(node: XmlNode): CrewPerson {
   };
 }
 
-function parseSensor(tag: string, node: XmlNode): SensorSpec {
+function parseSensor(tag: string, node: XmlNode, subsystem: Subsystem): SensorSpec {
   const attrs = takeAttrs(node);
   const alarms: AlarmBand[] = [];
   const alarmsNode = (node.alarms as XmlNode[] | undefined)?.[0];
@@ -240,6 +243,7 @@ function parseSensor(tag: string, node: XmlNode): SensorSpec {
     kind: tag,
     moduleName: attrs.moduleName ?? "(unnamed)",
     input: attrs.input ?? "",
+    subsystem,
     gasType: attrs.gasType,
     alarms,
     normalStochasticFilter: filterAttrs

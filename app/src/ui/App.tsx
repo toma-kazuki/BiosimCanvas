@@ -4,12 +4,15 @@ import { parseBiosim } from "../io/parseBiosim";
 import { Schematic } from "./schematic/Schematic";
 import { SidePanel } from "./side-panel/SidePanel";
 import { Palette } from "./common/Palette";
+import { ViewSwitcher } from "./common/ViewSwitcher";
+import { XmlView } from "./xml-view/XmlView";
 
 const BUNDLED_TEMPLATE = "/templates/template.biosim";
 
 export function App() {
   const doc = useCanvasStore((s) => s.doc);
   const setDoc = useCanvasStore((s) => s.setDoc);
+  const view = useCanvasStore((s) => s.view);
 
   const loadXml = useCallback(
     async (xml: string, sourceName: string) => {
@@ -68,7 +71,16 @@ export function App() {
       <Palette />
 
       <div className="canvas">
-        {doc ? <Schematic /> : <EmptyState />}
+        <ViewSwitcher />
+        {doc ? (
+          view === "schematic" ? (
+            <Schematic />
+          ) : (
+            <XmlView />
+          )
+        ) : (
+          <EmptyState />
+        )}
       </div>
 
       <SidePanel />

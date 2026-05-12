@@ -125,6 +125,107 @@ button.primary:hover {
   grid-area: canvas;
   position: relative;
   background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.view-switcher {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 4px 8px;
+  flex: 0 0 auto;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.view-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-muted);
+  padding: 3px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.view-tab:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.view-tab.active {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* The schematic / xml view body fills the remaining space. */
+.canvas > :nth-child(2) {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+
+.xml-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+.xml-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+}
+
+.xml-toolbar .xml-label {
+  color: var(--text-muted);
+}
+
+.xml-toolbar .spacer {
+  flex: 1;
+}
+
+.xml-error {
+  color: var(--err);
+  font-size: 11px;
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+}
+
+.xml-text {
+  margin: 0;
+  flex: 1;
+  width: 100%;
+  border: 0;
+  resize: none;
+  background: #0b0d12;
+  color: var(--text);
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  overflow: auto;
+  white-space: pre;
+  tab-size: 2;
+}
+
+.xml-text.readonly {
+  user-select: text;
+}
+
+.xml-empty {
+  height: 100%;
+  display: grid;
+  place-items: center;
 }
 
 .side {

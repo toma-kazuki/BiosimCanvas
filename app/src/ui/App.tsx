@@ -1,18 +1,44 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useCanvasStore } from "../state/store";
 import { parseBiosim } from "../io/parseBiosim";
 import { Schematic } from "./schematic/Schematic";
 import { SidePanel } from "./side-panel/SidePanel";
 import { Palette } from "./common/Palette";
 import { ViewSwitcher } from "./common/ViewSwitcher";
+import { Timeline } from "./timeline/Timeline";
 import { XmlView } from "./xml-view/XmlView";
 
-const BUNDLED_TEMPLATE = "/templates/template.biosim";
+interface BundledTemplate {
+  id: string;
+  label: string;
+  /** Filename served from /public/templates/. */
+  path: string;
+  /** Display-name shown in the title bar after load. */
+  displayName: string;
+}
+
+const BUNDLED_TEMPLATES: BundledTemplate[] = [
+  {
+    id: "template",
+    label: "Default",
+    path: "/templates/template.biosim",
+    displayName: "template.biosim",
+  },
+  {
+    id: "anomalies",
+    label: "Anomalies demo",
+    path: "/templates/template-anomalies.biosim",
+    displayName: "template-anomalies.biosim",
+  },
+];
+
+const DEFAULT_TEMPLATE_ID = "template";
 
 export function App() {
   const doc = useCanvasStore((s) => s.doc);
   const setDoc = useCanvasStore((s) => s.setDoc);
   const view = useCanvasStore((s) => s.view);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   const loadXml = useCallback(
     async (xml: string, sourceName: string) => {
@@ -27,23 +53,33 @@ export function App() {
     [setDoc],
   );
 
+  const loadBundledTemplate = useCallback(
+    async (id: string) => {
+      const tpl = BUNDLED_TEMPLATES.find((t) => t.id === id);
+      if (!tpl) return;
+      try {
+        const r = await fetch(tpl.path);
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const xml = await r.text();
+        await loadXml(xml, tpl.displayName);
+        setActiveTemplateId(id);
+      } catch (err) {
+        console.warn("[BioSimCanvas] failed to load bundled template", id, err);
+      }
+    },
+    [loadXml],
+  );
+
   useEffect(() => {
     if (doc) return;
-    fetch(BUNDLED_TEMPLATE)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.text();
-      })
-      .then((xml) => loadXml(xml, "template.biosim"))
-      .catch((err) => {
-        console.warn("[BioSimCanvas] no bundled template found:", err);
-      });
-  }, [doc, loadXml]);
+    loadBundledTemplate(DEFAULT_TEMPLATE_ID);
+  }, [doc, loadBundledTemplate]);
 
   const onFile = useCallback(
     async (file: File) => {
       const text = await file.text();
       await loadXml(text, file.name);
+      setActiveTemplateId(null); // user-loaded file is not one of ours
     },
     [loadXml],
   );
@@ -54,6 +90,24 @@ export function App() {
         <div className="brand">BioSimCanvas</div>
         <div className="filename">{doc?.sourceName ?? "(no file)"}</div>
         <div className="spacer" />
+        <label className="template-picker" title="Load a bundled template">
+          <span className="template-picker-label">template</span>
+          <select
+            value={activeTemplateId ?? ""}
+            onChange={(e) => loadBundledTemplate(e.target.value)}
+          >
+            {activeTemplateId === null && (
+              <option value="" disabled>
+                (custom)
+              </option>
+            )}
+            {BUNDLED_TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="file-button">
           <button type="button">Open .biosim</button>
           <input
@@ -62,7 +116,7 @@ export function App() {
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) onFile(f);
-              e.target.value = ""; // allow re-loading same file
+              e.target.value = "";
             }}
           />
         </label>
@@ -75,6 +129,8 @@ export function App() {
         {doc ? (
           view === "schematic" ? (
             <Schematic />
+          ) : view === "timeline" ? (
+            <Timeline />
           ) : (
             <XmlView />
           )

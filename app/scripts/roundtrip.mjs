@@ -14,10 +14,10 @@ import { build } from "vite";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 
-const xml = readFileSync(
-  resolve(repoRoot, "public/templates/template.biosim"),
-  "utf8",
-);
+const TARGETS = [
+  "public/templates/template.biosim",
+  "public/templates/template-anomalies.biosim",
+];
 
 // Use vite's library mode to bundle just the parser+emitter into a CJS file
 // in a temp dir, then dynamic-import it. This avoids needing tsx/ts-node and
@@ -55,10 +55,6 @@ await build({
 const mod = await import(`file://${join(outDir, "bundle.mjs")}`);
 const { parseBiosim, emitBiosim } = mod;
 
-const doc1 = parseBiosim(xml, "template.biosim");
-const xml2 = emitBiosim(doc1);
-const doc2 = parseBiosim(xml2, "roundtrip");
-
 const summarize = (d) => ({
   modules: d.modules.length,
   endpoints: d.modules.reduce((n, m) => n + m.endpoints.length, 0),
@@ -72,18 +68,29 @@ const summarize = (d) => ({
   malfunctions: d.modules.filter((m) => m.malfunction).length,
 });
 
-const a = summarize(doc1);
-const b = summarize(doc2);
+let allOk = true;
+for (const rel of TARGETS) {
+  const xml = readFileSync(resolve(repoRoot, rel), "utf8");
+  const doc1 = parseBiosim(xml, rel);
+  const xml2 = emitBiosim(doc1);
+  const doc2 = parseBiosim(xml2, `${rel}#roundtrip`);
 
-console.log("parsed  ", a);
-console.log("rebuilt ", b);
+  const a = summarize(doc1);
+  const b = summarize(doc2);
 
-let ok = true;
-for (const k of Object.keys(a)) {
-  if (a[k] !== b[k]) {
-    console.error(`MISMATCH ${k}: ${a[k]} vs ${b[k]}`);
-    ok = false;
+  console.log(`\n=== ${rel} ===`);
+  console.log("parsed  ", a);
+  console.log("rebuilt ", b);
+
+  let ok = true;
+  for (const k of Object.keys(a)) {
+    if (a[k] !== b[k]) {
+      console.error(`MISMATCH ${k}: ${a[k]} vs ${b[k]}`);
+      ok = false;
+    }
   }
+  if (!ok) allOk = false;
 }
-if (!ok) process.exit(1);
-console.log("OK — structural counts match across round-trip");
+
+if (!allOk) process.exit(1);
+console.log("\nOK — structural counts match across round-trip for all targets");

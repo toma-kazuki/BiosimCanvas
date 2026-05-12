@@ -19,7 +19,7 @@ import {
   setMalfunction,
 } from "../domain/mutations";
 
-export type CanvasView = "schematic" | "xml";
+export type CanvasView = "schematic" | "timeline" | "xml";
 
 interface CanvasState {
   doc: BiosimDocument | null;

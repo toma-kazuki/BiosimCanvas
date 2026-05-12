@@ -1,14 +1,16 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useCanvasStore } from "../../state/store";
 import {
   MODULE_KINDS,
   RESOURCE_LABEL,
   SUBSYSTEM_LABEL,
 } from "../../domain/registry";
+import { createEmptyEndpoint } from "../../domain/factories";
 import type {
   FlowEndpoint,
   MalfunctionSpec,
   ModuleNode,
+  ResourceKind,
   SensorSpec,
 } from "../../domain/types";
 import {
@@ -126,12 +128,32 @@ function ModuleInspector({ module }: { module: ModuleNode }) {
 
   const renameModule = useCanvasStore((s) => s.renameModule);
   const patchModuleAttr = useCanvasStore((s) => s.patchModuleAttr);
+  const deleteModule = useCanvasStore((s) => s.deleteModule);
+
+  const handleDelete = () => {
+    const ok = window.confirm(
+      `Delete module "${module.moduleName}"?\nReferences from other modules and sensors will also be cleared.`,
+    );
+    if (ok) deleteModule(module.moduleName);
+  };
 
   return (
     <>
-      <h2>{module.moduleName}</h2>
-      <div className="kind">
-        {meta?.label ?? module.kind} · {SUBSYSTEM_LABEL[module.subsystem]}
+      <div className="module-head">
+        <div>
+          <h2>{module.moduleName}</h2>
+          <div className="kind">
+            {meta?.label ?? module.kind} · {SUBSYSTEM_LABEL[module.subsystem]}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="danger"
+          onClick={handleDelete}
+          title="Delete this module"
+        >
+          Delete
+        </button>
       </div>
 
       <div className="section">
@@ -163,9 +185,7 @@ function ModuleInspector({ module }: { module: ModuleNode }) {
         </div>
       )}
 
-      {module.endpoints.length > 0 && (
-        <EndpointsSection moduleName={module.moduleName} endpoints={module.endpoints} />
-      )}
+      <EndpointsSection moduleName={module.moduleName} endpoints={module.endpoints} />
 
       <MalfunctionSection module={module} />
 
@@ -187,6 +207,10 @@ function EndpointsSection({
 }) {
   const doc = useCanvasStore((s) => s.doc)!;
   const patchEndpoint = useCanvasStore((s) => s.patchEndpoint);
+  const removeEndpoint = useCanvasStore((s) => s.removeEndpoint);
+  const addEndpoint = useCanvasStore((s) => s.addEndpoint);
+  const [adding, setAdding] = useState(false);
+
   const availableNames = useMemo(
     () => doc.modules.map((m) => m.moduleName),
     [doc.modules],
@@ -194,7 +218,28 @@ function EndpointsSection({
 
   return (
     <div className="section">
-      <h3>Flows</h3>
+      <div className="section-head">
+        <h3>Flows</h3>
+        <button type="button" onClick={() => setAdding((s) => !s)}>
+          {adding ? "Cancel" : "+ Add"}
+        </button>
+      </div>
+
+      {adding && (
+        <AddEndpointForm
+          onSubmit={(kind, resource) => {
+            addEndpoint(moduleName, createEmptyEndpoint(kind, resource));
+            setAdding(false);
+          }}
+        />
+      )}
+
+      {endpoints.length === 0 && !adding && (
+        <div className="empty" style={{ fontSize: 11 }}>
+          No flows. Add one to wire this module into the habitat.
+        </div>
+      )}
+
       {endpoints.map((ep, i) => {
         const arrow = ep.kind === "producer" ? "→" : "←";
         return (
@@ -206,6 +251,14 @@ function EndpointsSection({
               <span className="endpoint-resource">
                 {RESOURCE_LABEL[ep.resource]} {arrow}
               </span>
+              <button
+                type="button"
+                className="ep-remove"
+                title="Remove this flow"
+                onClick={() => removeEndpoint(moduleName, i)}
+              >
+                ×
+              </button>
             </div>
             <RefsRow
               label={ep.kind === "producer" ? "outputs" : "inputs"}
@@ -231,6 +284,49 @@ function EndpointsSection({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+const RESOURCE_OPTIONS = Object.keys(RESOURCE_LABEL) as ResourceKind[];
+
+function AddEndpointForm({
+  onSubmit,
+}: {
+  onSubmit: (kind: "producer" | "consumer", resource: ResourceKind) => void;
+}) {
+  const [kind, setKind] = useState<"producer" | "consumer">("producer");
+  const [resource, setResource] = useState<ResourceKind>("air");
+  return (
+    <div className="endpoint endpoint-add">
+      <Row label="direction">
+        <select
+          className="field"
+          value={kind}
+          onChange={(e) => setKind(e.target.value as "producer" | "consumer")}
+        >
+          <option value="producer">producer (→ outputs)</option>
+          <option value="consumer">consumer (← inputs)</option>
+        </select>
+      </Row>
+      <Row label="resource">
+        <select
+          className="field"
+          value={resource}
+          onChange={(e) => setResource(e.target.value as ResourceKind)}
+        >
+          {RESOURCE_OPTIONS.map((r) => (
+            <option key={r} value={r}>
+              {RESOURCE_LABEL[r]}
+            </option>
+          ))}
+        </select>
+      </Row>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button type="button" onClick={() => onSubmit(kind, resource)}>
+          Create
+        </button>
+      </div>
     </div>
   );
 }

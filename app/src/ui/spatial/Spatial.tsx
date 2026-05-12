@@ -27,6 +27,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
   type Edge,
   type Node,
   type NodeMouseHandler,
@@ -41,13 +42,21 @@ import {
   collectSimEnvs,
   defaultSpatialLayout,
   envBox,
+  ENV_H,
+  ENV_W,
   groupBoundaryConnectors,
   modulePosition,
   NODE_H,
+  NODE_W,
   type BoundaryBridge,
 } from "../../domain/spatialLayout";
+import {
+  createDefaultModule,
+  generateUniqueModuleName,
+} from "../../domain/factories";
 import { ModuleNodeView } from "../schematic/ModuleNodeView";
 import { useCanvasStore } from "../../state/store";
+import { KIND_DRAG_MIME } from "../common/Palette";
 import { SpatialToolbar } from "./SpatialToolbar";
 import {
   BoundaryConnectorView,
@@ -72,11 +81,21 @@ interface EnvBox {
 }
 
 export function Spatial() {
+  return (
+    <ReactFlowProvider>
+      <SpatialInner />
+    </ReactFlowProvider>
+  );
+}
+
+function SpatialInner() {
   const doc = useCanvasStore((s) => s.doc)!;
   const selectModule = useCanvasStore((s) => s.selectModule);
   const selectedModuleName = useCanvasStore((s) => s.selectedModuleName);
   const setModulePosition = useCanvasStore((s) => s.setModulePosition);
   const bulkSetPositions = useCanvasStore((s) => s.bulkSetPositions);
+  const addModule = useCanvasStore((s) => s.addModule);
+  const { screenToFlowPosition } = useReactFlow();
 
   const fallbackLayout = useMemo(() => defaultSpatialLayout(doc), [doc]);
 
@@ -209,43 +228,75 @@ export function Spatial() {
   // No flow edges in the spatial view.
   const edges: Edge[] = [];
 
+  // --- drag-from-palette --------------------------------------------------
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (!Array.from(e.dataTransfer.types).includes(KIND_DRAG_MIME)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }, []);
+
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      const kind = e.dataTransfer.getData(KIND_DRAG_MIME);
+      if (!kind) return;
+      e.preventDefault();
+
+      // Convert screen → flow coordinates and center the new node on the cursor.
+      const drop = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      const isEnv = kind === "SimEnvironment";
+      const w = isEnv ? ENV_W : NODE_W;
+      const h = isEnv ? ENV_H : NODE_H;
+      const pos: Position = { x: drop.x - w / 2, y: drop.y - h / 2 };
+      if (isEnv) {
+        pos.w = ENV_W;
+        pos.h = ENV_H;
+      }
+
+      const name = generateUniqueModuleName(doc, kind);
+      const mod = createDefaultModule(kind, name);
+      addModule(mod);
+      // `addModule` already selects; place it at the cursor.
+      setModulePosition(name, pos);
+    },
+    [doc, addModule, setModulePosition, screenToFlowPosition],
+  );
+
   return (
-    <ReactFlowProvider>
-      <div className="spatial-view">
-        <SpatialToolbar />
-        <div className="spatial-canvas">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            onNodeClick={onNodeClick}
-            onPaneClick={() => selectModule(null)}
-            onNodeDragStop={onNodeDragStop}
-            fitView
-            fitViewOptions={{ padding: 0.12 }}
-            minZoom={0.2}
-            maxZoom={2}
-            nodesDraggable
-            nodesConnectable={false}
-            elementsSelectable
-            proOptions={{ hideAttribution: true }}
-          >
-            <Background gap={24} color="#1f2330" />
-            <MiniMap
-              pannable
-              zoomable
-              nodeColor={(n) => {
-                if (n.type === "envRoom") return SUBSYSTEM_COLOR.environment + "55";
-                if (n.type === "boundaryConnector") return SUBSYSTEM_COLOR.environment;
-                return (n.style?.borderColor as string | undefined) ?? "#888";
-              }}
-              nodeStrokeColor="transparent"
-              maskColor="rgba(15,17,21,0.7)"
-            />
-            <Controls showInteractive={false} />
-          </ReactFlow>
-        </div>
+    <div className="spatial-view">
+      <SpatialToolbar />
+      <div className="spatial-canvas" onDragOver={onDragOver} onDrop={onDrop}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodeClick={onNodeClick}
+          onPaneClick={() => selectModule(null)}
+          onNodeDragStop={onNodeDragStop}
+          fitView
+          fitViewOptions={{ padding: 0.12 }}
+          minZoom={0.2}
+          maxZoom={2}
+          nodesDraggable
+          nodesConnectable={false}
+          elementsSelectable
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={24} color="#1f2330" />
+          <MiniMap
+            pannable
+            zoomable
+            nodeColor={(n) => {
+              if (n.type === "envRoom") return SUBSYSTEM_COLOR.environment + "55";
+              if (n.type === "boundaryConnector") return SUBSYSTEM_COLOR.environment;
+              return (n.style?.borderColor as string | undefined) ?? "#888";
+            }}
+            nodeStrokeColor="transparent"
+            maskColor="rgba(15,17,21,0.7)"
+          />
+          <Controls showInteractive={false} />
+        </ReactFlow>
       </div>
-    </ReactFlowProvider>
+    </div>
   );
 }

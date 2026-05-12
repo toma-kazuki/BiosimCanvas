@@ -6,18 +6,23 @@ import type {
   FlowEndpoint,
   Globals,
   MalfunctionSpec,
+  ModuleNode,
   Position,
   SensorSpec,
   SpatialLayout,
 } from "../domain/types";
 import {
+  addEndpoint,
+  addModule,
   bulkSetPositions,
+  deleteModule,
   patchCrewActivity,
   patchCrewPerson,
   patchEndpoint,
   patchGlobals,
   patchModuleAttr,
   patchSensor,
+  removeEndpoint,
   renameModule,
   setMalfunction,
   setModulePosition,
@@ -48,6 +53,10 @@ interface CanvasState {
     patch: Partial<FlowEndpoint>,
   ) => void;
   setMalfunction: (moduleName: string, malf: MalfunctionSpec | undefined) => void;
+  addModule: (mod: ModuleNode) => void;
+  deleteModule: (moduleName: string) => void;
+  addEndpoint: (moduleName: string, endpoint: FlowEndpoint) => void;
+  removeEndpoint: (moduleName: string, index: number) => void;
   patchCrewPerson: (
     groupName: string,
     index: number,
@@ -105,6 +114,31 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   setMalfunction: (moduleName, malf) =>
     set({ doc: setMalfunction(requireDoc(get()), moduleName, malf) }),
+
+  addModule: (mod) => {
+    try {
+      const next = addModule(requireDoc(get()), mod);
+      set({ doc: next, selectedModuleName: mod.moduleName, toast: null });
+    } catch (err) {
+      set({ toast: (err as Error).message });
+    }
+  },
+
+  deleteModule: (name) => {
+    const next = deleteModule(requireDoc(get()), name);
+    set({
+      doc: next,
+      selectedModuleName:
+        get().selectedModuleName === name ? null : get().selectedModuleName,
+      toast: `Deleted module ${name}`,
+    });
+  },
+
+  addEndpoint: (moduleName, endpoint) =>
+    set({ doc: addEndpoint(requireDoc(get()), moduleName, endpoint) }),
+
+  removeEndpoint: (moduleName, index) =>
+    set({ doc: removeEndpoint(requireDoc(get()), moduleName, index) }),
 
   patchCrewPerson: (groupName, index, patch) =>
     set({ doc: patchCrewPerson(requireDoc(get()), groupName, index, patch) }),

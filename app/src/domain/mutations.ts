@@ -99,7 +99,81 @@ export function renameModule(
   return renameModuleInLayout(renamed, oldName, newName);
 }
 
+// --- Add / delete modules -----------------------------------------------
+
+export function addModule(doc: BiosimDocument, mod: ModuleNode): BiosimDocument {
+  if (doc.modules.some((m) => m.moduleName === mod.moduleName)) {
+    throw new RenameCollisionError(mod.moduleName);
+  }
+  return { ...doc, modules: [...doc.modules, mod] };
+}
+
+/**
+ * Remove a module from the document and clean up every reference to
+ * it: producer/consumer refs on every other module, sensor inputs,
+ * and its `spatialLayout` entry. The semantics are: "the user wants
+ * this module gone; do not leave dangling pointers".
+ */
+export function deleteModule(doc: BiosimDocument, name: string): BiosimDocument {
+  if (!doc.modules.some((m) => m.moduleName === name)) return doc;
+
+  const modules = doc.modules
+    .filter((m) => m.moduleName !== name)
+    .map((m) => {
+      let changed = false;
+      const endpoints = m.endpoints.map((ep) => {
+        if (!ep.refs.includes(name)) return ep;
+        changed = true;
+        return { ...ep, refs: ep.refs.filter((r) => r !== name) };
+      });
+      return changed ? { ...m, endpoints } : m;
+    });
+
+  const sensors = doc.sensors
+    .filter((s) => s.input !== name && s.moduleName !== name);
+
+  let spatialLayout = doc.spatialLayout;
+  if (spatialLayout && name in spatialLayout) {
+    spatialLayout = { ...spatialLayout };
+    delete spatialLayout[name];
+  }
+
+  return { ...doc, modules, sensors, spatialLayout };
+}
+
 // --- Endpoints -----------------------------------------------------------
+
+export function addEndpoint(
+  doc: BiosimDocument,
+  moduleName: string,
+  endpoint: FlowEndpoint,
+): BiosimDocument {
+  return {
+    ...doc,
+    modules: doc.modules.map((m) =>
+      m.moduleName === moduleName
+        ? { ...m, endpoints: [...m.endpoints, endpoint] }
+        : m,
+    ),
+  };
+}
+
+export function removeEndpoint(
+  doc: BiosimDocument,
+  moduleName: string,
+  endpointIndex: number,
+): BiosimDocument {
+  return {
+    ...doc,
+    modules: doc.modules.map((m) => {
+      if (m.moduleName !== moduleName) return m;
+      return {
+        ...m,
+        endpoints: m.endpoints.filter((_, i) => i !== endpointIndex),
+      };
+    }),
+  };
+}
 
 export function patchEndpoint(
   doc: BiosimDocument,

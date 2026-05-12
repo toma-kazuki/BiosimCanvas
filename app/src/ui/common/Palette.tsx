@@ -1,23 +1,43 @@
+// Left-side palette. Two sections:
+//
+//   1. CATALOG — every module kind from `MODULE_KINDS`, grouped by
+//      subsystem. Each chip is HTML5-draggable; the canvas listens
+//      for drops and inserts a new module of that kind. Click also
+//      works as a fallback (keyboard / accessibility): clicking adds
+//      the module with a default position (no drop coordinates).
+//
+//   2. IN DOCUMENT — every module currently in the doc, grouped by
+//      subsystem. Clicking focuses the module on the canvas.
+//
+// Drag protocol (kept private to this file + the drop targets):
+//   dataTransfer key:   "application/biosim-kind"
+//   dataTransfer value: the module kind string ("Fan", "OGS", …)
+
 import { useMemo } from "react";
 import { useCanvasStore } from "../../state/store";
-import { MODULE_KINDS, SUBSYSTEM_LABEL, SUBSYSTEM_ORDER } from "../../domain/registry";
+import {
+  MODULE_KINDS,
+  SUBSYSTEM_COLOR,
+  SUBSYSTEM_LABEL,
+  SUBSYSTEM_ORDER,
+} from "../../domain/registry";
+import {
+  createDefaultModule,
+  generateUniqueModuleName,
+} from "../../domain/factories";
 import type { ModuleNode, Subsystem } from "../../domain/types";
 
-/**
- * v0.x palette. In this phase it's a *legend / outline* of the modules
- * present in the loaded model rather than a drag source, because we
- * have not yet wired up authoring of new modules. Clicking an entry
- * focuses that module on the canvas.
- *
- * Drag-to-place authoring lands in a later phase (see
- * docs/03-requirements.md F-EDIT-1).
- */
+export const KIND_DRAG_MIME = "application/biosim-kind";
+
 export function Palette() {
   const doc = useCanvasStore((s) => s.doc);
+  const addModule = useCanvasStore((s) => s.addModule);
   const selectModule = useCanvasStore((s) => s.selectModule);
   const selectedName = useCanvasStore((s) => s.selectedModuleName);
 
-  const bySubsystem = useMemo(() => {
+  const catalogBySub = useMemo(() => groupKindsBySubsystem(), []);
+
+  const inDocBySubsystem = useMemo(() => {
     const groups: Partial<Record<Subsystem, ModuleNode[]>> = {};
     if (!doc) return groups;
     for (const m of doc.modules) {
@@ -29,23 +49,75 @@ export function Palette() {
   if (!doc) {
     return (
       <aside className="palette">
-        <h3>Modules</h3>
+        <h3>Catalog</h3>
         <div className="placeholder">
-          Loading template.biosim — modules will appear here grouped by
-          subsystem.
+          Load a .biosim file to start placing modules.
         </div>
       </aside>
     );
   }
 
+  const handleCatalogClick = (kind: string) => {
+    const name = generateUniqueModuleName(doc, kind);
+    addModule(createDefaultModule(kind, name));
+  };
+
   return (
     <aside className="palette">
+      <h3>Catalog</h3>
+      <div className="palette-hint">
+        Drag onto the canvas, or click to add.
+      </div>
       {SUBSYSTEM_ORDER.map((sub) => {
-        const items = bySubsystem[sub];
+        const kinds = catalogBySub.get(sub) ?? [];
+        if (kinds.length === 0) return null;
+        return (
+          <div key={`cat-${sub}`} className="palette-group">
+            <div
+              className="palette-sub-label"
+              style={{ color: SUBSYSTEM_COLOR[sub] }}
+            >
+              {SUBSYSTEM_LABEL[sub]}
+            </div>
+            <div>
+              {kinds.map((kind) => {
+                const meta = MODULE_KINDS[kind];
+                return (
+                  <button
+                    key={`cat-${kind}`}
+                    type="button"
+                    className="catalog-chip"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(KIND_DRAG_MIME, kind);
+                      e.dataTransfer.setData("text/plain", kind);
+                      e.dataTransfer.effectAllowed = "copy";
+                    }}
+                    onClick={() => handleCatalogClick(kind)}
+                    title={`Add a new ${meta.label}`}
+                  >
+                    <span className="catalog-glyph">{meta.glyph}</span>
+                    <span className="catalog-label">{meta.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      <h3 style={{ marginTop: 16 }}>In document</h3>
+      {SUBSYSTEM_ORDER.map((sub) => {
+        const items = inDocBySubsystem[sub];
         if (!items || items.length === 0) return null;
         return (
-          <div key={sub}>
-            <h3>{SUBSYSTEM_LABEL[sub]}</h3>
+          <div key={`doc-${sub}`} className="palette-group">
+            <div
+              className="palette-sub-label"
+              style={{ color: SUBSYSTEM_COLOR[sub] }}
+            >
+              {SUBSYSTEM_LABEL[sub]} ({items.length})
+            </div>
             <div>
               {items.map((m) => {
                 const meta = MODULE_KINDS[m.kind];
@@ -54,23 +126,12 @@ export function Palette() {
                   <button
                     type="button"
                     key={m.moduleName}
+                    className={`doc-chip${active ? " active" : ""}`}
                     onClick={() => selectModule(m.moduleName)}
-                    style={{
-                      display: "block",
-                      width: "100%",
-                      textAlign: "left",
-                      marginBottom: 4,
-                      padding: "5px 8px",
-                      fontSize: 12,
-                      borderColor: active ? "var(--accent)" : "var(--border)",
-                      background: active ? "var(--surface-3)" : "var(--surface-2)",
-                    }}
                     title={meta?.label ?? m.kind}
                   >
-                    <span style={{ color: "var(--text-muted)", fontSize: 10 }}>
-                      {meta?.glyph ?? "??"}
-                    </span>{" "}
-                    {m.moduleName}
+                    <span className="doc-glyph">{meta?.glyph ?? "??"}</span>
+                    <span className="doc-name">{m.moduleName}</span>
                   </button>
                 );
               })}
@@ -80,4 +141,19 @@ export function Palette() {
       })}
     </aside>
   );
+}
+
+// --- helpers -------------------------------------------------------------
+
+function groupKindsBySubsystem(): Map<Subsystem, string[]> {
+  const out = new Map<Subsystem, string[]>();
+  for (const [kind, meta] of Object.entries(MODULE_KINDS)) {
+    const list = out.get(meta.subsystem) ?? [];
+    list.push(kind);
+    out.set(meta.subsystem, list);
+  }
+  for (const [, list] of out) {
+    list.sort();
+  }
+  return out;
 }

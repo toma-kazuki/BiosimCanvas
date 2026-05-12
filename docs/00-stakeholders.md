@@ -2,7 +2,8 @@
 
 | Revision | Date | Status | Authors | Reviewers |
 |----------|------|--------|---------|-----------|
-| 0.1 (draft) | 2026-05-12 | Initial draft — to be reviewed in the next lab meeting | Project lead | TBD |
+| 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
+| 0.2 (draft) | 2026-05-12 | No content changes; revision-bump-only to keep the doc set in lock-step. Specific TRACLabs contact still pending; will be filled in after the next lab meeting (≈ T+8h). | Project lead | TBD |
 
 ## Purpose
 

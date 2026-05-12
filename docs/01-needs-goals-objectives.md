@@ -2,7 +2,8 @@
 
 | Revision | Date | Status | Authors | Reviewers |
 |----------|------|--------|---------|-----------|
-| 0.1 (draft) | 2026-05-12 | Initial draft — to be reviewed in the next lab meeting | Project lead | TBD |
+| 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
+| 0.2 (draft) | 2026-05-12 | Resolved license, deadline, browser-targets opens. To be reviewed at the next lab meeting (≈ T+8h). | Project lead | TBD |
 
 ## 1. Problem Statement
 
@@ -199,18 +200,30 @@ following are true:
 
 ## 7. Open Questions (NGO-level)
 
-- **OPEN:** Fixed deadline / milestone for v1? (Semester end?
-  Specific paper? Meeting demo?)
-- **OPEN:** License — adopt GPL-3.0 to mirror BioSim, or
-  something more permissive? Affects whether external
-  collaborators can adopt BioSimCanvas freely.
+Resolved in v0.2:
+
+- **RESOLVED (v0.2):** Deadline — first **demo at the next lab
+  meeting, ≈ T+8h** from the v0.2 timestamp. This is a hard
+  constraint; v1.0 is *not* expected by that meeting — the
+  meeting will show a v0.x prototype to gather feedback. v1
+  itself remains scoped against the success criteria in §6.
+- **RESOLVED (v0.2):** License — **MIT** (see [LICENSE](../LICENSE)).
+  Selected for maximum reuse by labs and collaborators around
+  BioSim. BioSim's own GPL-3.0 is unaffected: BioSimCanvas
+  only produces `.biosim` files and bundles BioSim's XSDs as
+  data, neither of which constitutes a derivative work.
+- **RESOLVED (v0.2):** Browser support — **Chromium-only first
+  class** (Chrome / Edge / Brave). Firefox and Safari are
+  best-effort. The File System Access API is available natively
+  in Chromium; on other browsers, download/upload fallbacks
+  are acceptable.
+
+Still open:
+
 - **OPEN:** Any data-sensitivity concerns (ITAR/EAR) on the
   habitat models we will edit in BioSimCanvas? BioSim itself is
   public on GitHub under GPL-3.0, but scenarios authored for
   specific NASA programs may be more sensitive.
-- **OPEN:** Browser support targets (latest Chromium only,
-  or also Firefox / Safari)? The File System Access API has
-  patchy support outside Chromium and influences O-5.
 
 ## 8. Traceability hooks
 

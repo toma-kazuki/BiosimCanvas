@@ -2,7 +2,8 @@
 
 | Revision | Date | Status | Authors | Reviewers |
 |----------|------|--------|---------|-----------|
-| 0.1 (draft) | 2026-05-12 | Initial draft — to be reviewed in the next lab meeting | Project lead | TBD |
+| 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
+| 0.2 (draft) | 2026-05-12 | Fixed malfunction schema (occursAtTick + 1-per-module); resolved NF-4 / NF-8 / NF-9 / F-VIEW-2 opens; flagged v1 acceptance journeys. To be reviewed at the next lab meeting (≈ T+8h). | Project lead | TBD |
 
 ## How to read this document
 
@@ -173,14 +174,18 @@ The system **MUST** offer a separate spatial canvas where
 modules can be placed at arbitrary 2D positions for
 communication purposes. The spatial layout **MUST NOT** affect
 exported simulation values.
-- **Trace**: [O-5](01-needs-goals-objectives.md#o-5-bounded-simplicity-supports-g-4) (simpler view), [SCN-1](02-concept-of-operations.md#scn-1).
-- **Verify**: move modules in the spatial view; export the
-  config; the spatial coordinates are not visible in BioSim
-  semantics.
-- **OPEN:** decide whether to persist spatial positions in the
-  `.biosim` file via a `<biosim-canvas:layout>` extension
-  element (preserved by F-MODEL-3 round-tripping), or in a
-  sidecar file. Recommend extension element; mark as TBD.
+
+Spatial coordinates **MUST** be persisted to a **sidecar JSON
+file** next to the `.biosim` (e.g. `foo.biosim` +
+`foo.biosim.canvas.json`), not inside the `.biosim` itself.
+This keeps the `.biosim` semantically pure for TRACLabs and
+avoids round-trip issues with their tooling. If the sidecar is
+absent on load, the system **SHOULD** auto-layout the spatial
+view from defaults.
+- **Trace**: [O-5](01-needs-goals-objectives.md#o-5-bounded-simplicity-supports-g-4) (simpler view), [G-5](01-needs-goals-objectives.md#3-goals), [SCN-1](02-concept-of-operations.md#scn-1).
+- **Verify**: move modules in the spatial view, export; the
+  `.biosim` is byte-for-byte unaffected by the spatial layout
+  changes; the sidecar file reflects them.
 
 #### F-VIEW-3 — Timeline view
 The system **MUST** offer a timeline view that shows:
@@ -192,12 +197,11 @@ markers and crew activities directly on the timeline.
 - **Verify**: schedule a malfunction at tick 5000; the model
   reflects it; the export includes the corresponding
   configuration element.
-- **OPEN:** confirm that malfunctions are authored in the
-  `.biosim` itself (rather than introduced at runtime via the
-  REST malfunction endpoint). The BioSim README shows REST
-  endpoints for malfunctions; whether they can also be declared
-  at config-time is **TBD** and must be confirmed against the
-  XSDs / TRACLabs maintainers.
+- **Note (v0.2):** confirmed against `Framework.xsd` —
+  `<malfunction>` is a valid `BioModuleType` child with
+  `maxOccurs="1"`. Multiple malfunctions per module at runtime
+  go through the REST endpoint and are out of scope for v1.
+  See F-ANOMALY-1.
 
 #### F-VIEW-4 — Properties side panel
 A side panel **MUST** show the currently selected element's
@@ -220,16 +224,30 @@ canonical model and any errors are surfaced.
 
 ### 1.5 Anomaly Scenarios (F-ANOMALY-*)
 
-#### F-ANOMALY-1 — Malfunction authoring
-The system **MUST** allow the user to author per-module
-malfunctions with:
-- intensity (`SEVERE_MALF`, `MEDIUM_MALF`, `LOW_MALF`),
-- length (`TEMPORARY_MALF`, `PERMANENT_MALF`),
-- `tickToOccur` (integer).
-- **Trace**: [SCN-2](02-concept-of-operations.md#scn-2), [SCN-4](02-concept-of-operations.md#scn-4).
-- **Verify**: a malfunction created via the timeline appears in
-  the model and exports to the correct schema element. (See
-  F-VIEW-3 open item on config-time vs runtime malfunctions.)
+#### F-ANOMALY-1 — Config-time malfunction authoring
+The system **MUST** allow the user to author **at most one**
+config-time malfunction per `BioModule`, with:
+- `intensity` ∈ {`SEVERE_MALF`, `MEDIUM_MALF`, `LOW_MALF`},
+- `length` ∈ {`TEMPORARY_MALF`, `PERMANENT_MALF`},
+- `occursAtTick` (non-negative integer).
+
+These map to the `<malfunction>` child element defined by
+`Framework.xsd` (`maxOccurs="1"`).
+
+Adding multiple malfunctions on the same module at different
+ticks is **out of scope for v1** — BioSim supports this only
+via the REST malfunction endpoint at runtime, not in the
+`.biosim` config. The timeline UI **MUST** prevent a second
+config-time malfunction on the same module and **SHOULD**
+explain why.
+- **Trace**: [SCN-2](02-concept-of-operations.md#scn-2), [SCN-4](02-concept-of-operations.md#scn-4),
+  BioSim `etc/schema/framework/Framework.xsd` `MalfunctionType`.
+- **Verify**: a malfunction created on the OGS via the timeline
+  appears in the model and exports as
+  `<malfunction intensity="MEDIUM_MALF" length="TEMPORARY_MALF"
+  occursAtTick="5000"/>` inside the OGS element. Attempting to
+  add a second malfunction to the same module is blocked with a
+  message.
 
 #### F-ANOMALY-2 — Crew schedule authoring
 The system **MUST** allow the user to compose a 24-hour
@@ -325,12 +343,15 @@ Intel ≥ 16 GB):
 - **Verify**: hand-timed during SCN-2 / SCN-4.
 
 ### NF-4 — Browser support
-The system **MUST** run on the latest Chromium (Chrome / Edge).
-It **SHOULD** also run on the latest Firefox and Safari, with
-graceful fall-backs where required (e.g. download/upload
-instead of File System Access API on browsers that lack it).
-- **Trace**: NGO open question on browser support.
-- **OPEN:** confirm which browsers are first-class.
+**Chromium (Chrome / Edge / Brave)** is the first-class target
+and **MUST** be fully supported in v1. Firefox and Safari are
+**best-effort**: the SPA **SHOULD** load and function, falling
+back from the File System Access API to download/upload-style
+I/O. Documented missing features on non-Chromium browsers are
+acceptable as long as the v1 acceptance journeys (SCN-2,
+SCN-3, SCN-4) work on Chromium.
+- **Trace**: [O-5](01-needs-goals-objectives.md#o-5).
+- **Resolved (v0.2).**
 
 ### NF-5 — Accessibility
 Where it does not increase complexity disproportionately, the
@@ -360,12 +381,18 @@ upstream change, BioSimCanvas **MUST** be updated and re-tested
 against the new schemas; v1 does **not** support hot-swapping
 schema versions.
 - **Trace**: [G-5](01-needs-goals-objectives.md#3-goals).
-- **OPEN:** which BioSim commit / version do we pin to in v1?
+- **Resolved (v0.2):** v1 pins to BioSim commit
+  **`edb93e81`** (i.e. `v2.0.0-35-gedb93e81`,
+  branch `main`, 2025-09-02 — matches the local
+  `biosim-as-reference/` checkout). All bundled XSDs and
+  example configs are taken from this commit.
 
 ### NF-9 — Licensing
-- **OPEN:** Adopt GPL-3.0 to mirror BioSim, or a more
-  permissive license? Decided in concert with the JSC
-  contractor and lab director.
+BioSimCanvas is licensed under **MIT** (see [LICENSE](../LICENSE)).
+The MIT terms apply to the BioSimCanvas source; the bundled
+BioSim XSDs remain under BioSim's GPL-3.0 license and are
+treated as data, not as source incorporated into BioSimCanvas.
+- **Resolved (v0.2).**
 
 ### NF-10 — Privacy / data handling
 The system **MUST NOT** transmit configurations off the user's
@@ -388,14 +415,19 @@ tests. The intended high-level mapping is:
 
 ## 4. Open Items (Requirements-level)
 
+Resolved in v0.2:
+
+- **RESOLVED (v0.2):** F-VIEW-2 — layout persisted as sidecar JSON.
+- **RESOLVED (v0.2):** F-ANOMALY-1 — config-time malfunctions
+  exist (Framework.xsd), max one per module; runtime
+  malfunctions stay REST-only and out of scope for v1.
+- **RESOLVED (v0.2):** NF-4 — Chromium first class.
+- **RESOLVED (v0.2):** NF-8 — pin to BioSim commit `edb93e81`.
+- **RESOLVED (v0.2):** NF-9 — MIT.
+
+Still open:
+
 - **OPEN:** Define the comprehension-check questions used to
   verify O-3 / F-VIEW-1.
 - **OPEN:** Decide F-EDIT-5 undo granularity.
-- **OPEN:** Decide F-VIEW-2 layout persistence (extension
-  element vs sidecar).
-- **OPEN:** Confirm config-time vs runtime malfunctions
-  (F-ANOMALY-1).
-- **OPEN:** Pin BioSim version for NF-8.
-- **OPEN:** Confirm browser targets (NF-4) and accessibility
-  posture (NF-5).
-- **OPEN:** Decide license (NF-9).
+- **OPEN:** NF-5 accessibility posture (a formal target or not).

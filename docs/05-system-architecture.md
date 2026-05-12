@@ -2,7 +2,8 @@
 
 | Revision | Date | Status | Authors | Reviewers |
 |----------|------|--------|---------|-----------|
-| 0.1 (draft) | 2026-05-12 | Initial sketch — populated lightly so requirements stabilize first; expect heavy revision before implementation. | Project lead | TBD |
+| 0.1 (draft) | 2026-05-12 | Initial sketch | Project lead | TBD |
+| 0.2 (draft) | 2026-05-12 | Layout sidecar choice and BioSim pin landed; framework and XSD-validation decisions remain to be picked up alongside the first build. | Project lead | TBD |
 
 This document records architectural decisions and the rationale for
 each. It is intentionally **terse** at this stage so the
@@ -176,14 +177,18 @@ one without supporting every corner of the BioSim XSDs.
 
 ### 4.4 Layout metadata
 
-Spatial / schematic layout coordinates are stored either:
-- inside the `.biosim` under a `biosim-canvas:` namespace as
-  extension elements (preserved by F-MODEL-3), or
-- in a sidecar file next to the `.biosim`.
+Spatial / schematic layout coordinates are persisted to a
+**sidecar JSON file** next to the `.biosim`, named
+`<basename>.biosim.canvas.json`. The `.biosim` itself is left
+semantically pure — useful when sharing with TRACLabs or any
+tooling that did not write the layout. If the sidecar is
+missing on load, BioSimCanvas auto-lays out the spatial view
+from defaults.
 
-**Recommendation**: extension element. **OPEN:** confirm with
-TRACLabs that this is acceptable (it should be; XML
-namespaces are designed for this).
+**Resolved (v0.2).** (Earlier draft considered a namespaced
+extension element inside the `.biosim`; the sidecar keeps the
+canonical file clean at the cost of two files traveling
+together.)
 
 ### 4.5 No live BioSim integration in v1
 
@@ -204,9 +209,22 @@ simplicity.
 
 ## 6. Open Items (Architecture-level)
 
+Resolved in v0.2:
+
+- **RESOLVED (v0.2):** Layout metadata — sidecar JSON
+  (`<basename>.biosim.canvas.json`) next to the `.biosim`.
+- **RESOLVED (v0.2):** Pin BioSim version — `edb93e81`
+  (`v2.0.0-35-gedb93e81`), matching the local
+  `biosim-as-reference/` checkout.
+
+Still open:
+
 - **OPEN:** Confirm framework choice (React vs Svelte vs Vue).
-- **OPEN:** Confirm XSD validation strategy (WASM vs structural).
-- **OPEN:** Confirm extension-element approach for layout
-  metadata with TRACLabs.
+  Default proposal stands: React + TypeScript + Vite.
+- **OPEN:** Confirm XSD validation strategy (WASM XSD validator
+  vs structural validation in TypeScript). Default proposal:
+  structural validation first (cheaper); add WASM XSD if and
+  when warranted.
 - **OPEN:** Decide flat repo vs monorepo layout for the SPA.
-- **OPEN:** Pin BioSim version for the bundled schemas (NF-8).
+  Default proposal: flat for v1; revisit when a second package
+  emerges.

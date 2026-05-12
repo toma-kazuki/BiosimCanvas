@@ -2,7 +2,8 @@
 
 | Revision | Date | Status | Authors | Reviewers |
 |----------|------|--------|---------|-----------|
-| 0.1 (draft) | 2026-05-12 | Initial draft — to be reviewed in the next lab meeting | Project lead | TBD |
+| 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
+| 0.2 (draft) | 2026-05-12 | SCN-3, SCN-2, SCN-4 marked as v1 acceptance journeys. To be reviewed at the next lab meeting (≈ T+8h). | Project lead | TBD |
 
 This document describes **how BioSimCanvas is used** — who does what,
 when, with what — so the requirements that follow have a concrete
@@ -41,10 +42,20 @@ in operation, not as people.
 ## 3. Primary Operational Scenarios
 
 Each scenario is a concrete user journey we expect to support in
-v1. They are the basis for acceptance tests. Specific journeys
-beyond these are still **OPEN** (see §6).
+v1. They are the basis for acceptance tests.
 
-### SCN-1 — "Review the current habitat in a meeting" *(supports O-3)*
+**v1 acceptance gates (selected v0.2):**
+
+- **SCN-3** — author a new habitat from scratch,
+- **SCN-2** — adjust a habitat live and export,
+- **SCN-4** — take a baseline and inject an anomaly drill.
+
+All three are authoring-heavy and exercise the full edit /
+validate / export loop. SCN-1 (read-only review) and SCN-5
+(share with TRACLabs) are supporting scenarios — they should
+keep working but are *not* v1 gates and do not block release.
+
+### SCN-1 — "Review the current habitat in a meeting" *(supports O-3)* — supporting, not a v1 gate
 
 1. The Driver opens BioSimCanvas in a browser.
 2. They open `template.biosim` (the current IHab + HALO baseline)
@@ -67,7 +78,7 @@ beyond these are still **OPEN** (see §6).
 
 **Success**: the meeting happens without anyone reading XML.
 
-### SCN-2 — "Adjust a habitat live and export" *(supports O-1, O-2, O-4)*
+### SCN-2 — "Adjust a habitat live and export" *(supports O-1, O-2, O-4)* — **v1 acceptance gate**
 
 1. As in SCN-1, the Driver opens an existing config.
 2. The group decides to add a third crew member. The Driver
@@ -93,7 +104,7 @@ beyond these are still **OPEN** (see §6).
 **Success**: a meeting decision becomes a runnable artifact in
 the same meeting.
 
-### SCN-3 — "Author a new habitat from scratch" *(supports O-2)*
+### SCN-3 — "Author a new habitat from scratch" *(supports O-2)* — **v1 acceptance gate**
 
 1. The Driver starts from the **"Empty / Minimal" template** (a
    `Globals` block + a single `SimEnvironment`).
@@ -117,7 +128,7 @@ the same meeting.
 **Success**: a useful habitat is producible without ever
 opening the XML view.
 
-### SCN-4 — "Take a baseline and inject an anomaly drill" *(supports O-1, O-2)*
+### SCN-4 — "Take a baseline and inject an anomaly drill" *(supports O-1, O-2)* — **v1 acceptance gate**
 
 This is the *ops/training engineer* pattern, performed in v1 by
 the project lead emulating that role.
@@ -139,7 +150,7 @@ the project lead emulating that role.
 **Success**: scenario authoring is a timeline activity, not a
 text-editing activity.
 
-### SCN-5 — "Share a `.biosim` with TRACLabs" *(supports G-5)*
+### SCN-5 — "Share a `.biosim` with TRACLabs" *(supports G-5)* — supporting, not a v1 gate
 
 1. The Driver finishes a scenario in BioSimCanvas and exports a
    `.biosim`.
@@ -215,8 +226,13 @@ closed; reopening requires re-loading from the filesystem.
 
 ## 6. Open Questions (ConOps-level)
 
-- **OPEN:** Top-3 *named* user journeys the lab director wants to
-  see demoed for v1 sign-off (placeholder: SCN-1, SCN-2, SCN-3).
+Resolved in v0.2:
+
+- **RESOLVED (v0.2):** v1 acceptance journeys — **SCN-3, SCN-2,
+  SCN-4**. SCN-1 and SCN-5 are supporting.
+
+Still open:
+
 - **OPEN:** Do we need an "undo / redo" stack on the canvas (almost
   certainly yes, but at what granularity — per-edit, per-node,
   per-tab)? Affects requirements R-EDIT-*.

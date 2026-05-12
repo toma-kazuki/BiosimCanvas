@@ -53,4 +53,8 @@ template BioSimCanvas v1 must be able to load, edit, and re-emit.
 
 ## License
 
-TBD (candidate: GPL-3.0 to match BioSim).
+[MIT](LICENSE) — chosen to keep BioSimCanvas maximally reusable by
+labs and collaborators around BioSim itself. BioSim's own GPL-3.0
+license is unaffected; BioSimCanvas only *produces* `.biosim` files
+and bundles BioSim's XSDs as data, neither of which constitutes a
+derivative work of BioSim.

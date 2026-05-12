@@ -51,7 +51,9 @@ export function Palette() {
       <aside className="palette">
         <h3>Catalog</h3>
         <div className="placeholder">
-          Load a .biosim file to start placing modules.
+          Loading or waiting for a document. Use the template picker or{" "}
+          <kbd className="kbd-keys">⌘O</kbd>/<kbd className="kbd-keys">Ctrl+O</kbd> to open a file —
+          then the catalog and module list appear here.
         </div>
       </aside>
     );

@@ -97,9 +97,15 @@ export function Timeline() {
 
       {empty ? (
         <div className="timeline-empty">
-          No crew schedules or malfunctions in this document yet. Add a
-          <code> &lt;crewPerson&gt;</code> with a <code>&lt;schedule&gt;</code>,
-          or attach a malfunction to a module from the side panel.
+          <p>
+            No crew schedules or malfunctions in this document yet. Add a{" "}
+            <code>&lt;crewPerson&gt;</code> with a <code>&lt;schedule&gt;</code>, or attach a
+            malfunction to a module from the side panel.
+          </p>
+          <p className="timeline-empty-hint">
+            Tip: try the bundled <strong>Anomalies demo</strong> template for sample malfunction
+            markers.
+          </p>
         </div>
       ) : (
         <div className="timeline-body">

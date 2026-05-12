@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCanvasStore } from "../state/store";
 import {
   clearSession,
@@ -14,6 +14,9 @@ import { Schematic } from "./schematic/Schematic";
 import { SidePanel } from "./side-panel/SidePanel";
 import { Palette } from "./common/Palette";
 import { ViewSwitcher } from "./common/ViewSwitcher";
+import { KeyboardShortcutsModal } from "./common/KeyboardShortcutsModal";
+import { exportCanvasViewPng } from "./common/exportViewPng";
+import { viewFromDigit } from "./common/views";
 import { Spatial } from "./spatial/Spatial";
 import { Timeline } from "./timeline/Timeline";
 import { Review } from "./review/Review";
@@ -66,23 +69,29 @@ export function App() {
   const futureLen = useCanvasStore((s) => s.future.length);
   const autosaveEnabled = useCanvasStore((s) => s.autosaveEnabled);
   const setAutosaveEnabled = useCanvasStore((s) => s.setAutosaveEnabled);
+  const setView = useCanvasStore((s) => s.setView);
+  const selectModule = useCanvasStore((s) => s.selectModule);
+  const setToast = useCanvasStore((s) => s.setToast);
   const view = useCanvasStore((s) => s.view);
   const biosimFileHandle = useCanvasStore((s) => s.biosimFileHandle);
   const applyBiosimSave = useCanvasStore((s) => s.applyBiosimSave);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [sessionOffer, setSessionOffer] = useState<StoredSessionV1 | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const openFileRef = useRef<HTMLInputElement>(null);
 
   const loadXml = useCallback(
     async (xml: string, sourceName: string) => {
       try {
         const parsed = parseBiosim(xml, sourceName);
         setDoc(parsed);
+        setToast(null);
       } catch (err) {
         console.error("[BioSimCanvas] failed to parse", sourceName, err);
-        alert(`Failed to parse ${sourceName}: ${(err as Error).message}`);
+        setToast(`Parse error (${sourceName}): ${(err as Error).message}`);
       }
     },
-    [setDoc],
+    [setDoc, setToast],
   );
 
   const loadBundledTemplate = useCallback(
@@ -97,70 +106,12 @@ export function App() {
         setActiveTemplateId(id);
       } catch (err) {
         console.warn("[BioSimCanvas] failed to load bundled template", id, err);
+        setToast(
+          `Could not load template "${tpl.label}": ${(err as Error).message}`,
+        );
       }
     },
-    [loadXml],
-  );
-
-  useEffect(() => {
-    if (doc) return;
-    loadBundledTemplate(DEFAULT_TEMPLATE_ID);
-  }, [doc, loadBundledTemplate]);
-
-  useEffect(() => {
-    if (!loadAutosavePreference()) return;
-    const s = readSession();
-    if (s) setSessionOffer(s);
-  }, []);
-
-  useEffect(() => {
-    if (!autosaveEnabled || !doc) return;
-    const id = window.setTimeout(() => persistSession(doc), 1500);
-    return () => window.clearTimeout(id);
-  }, [doc, autosaveEnabled]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLElement) {
-        const t = e.target.tagName;
-        if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
-      }
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-      if (e.key === "z" || e.key === "Z") {
-        e.preventDefault();
-        if (e.shiftKey) redo();
-        else undo();
-        return;
-      }
-      if (e.key === "y" && e.ctrlKey) {
-        e.preventDefault();
-        redo();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [undo, redo]);
-
-  const dismissSessionOffer = useCallback(() => {
-    clearSession();
-    setSessionOffer(null);
-  }, []);
-
-  const restoreSessionOffer = useCallback(() => {
-    if (!sessionOffer) return;
-    setDoc(sessionOffer.doc);
-    setActiveTemplateId(null);
-    setSessionOffer(null);
-  }, [sessionOffer, setDoc]);
-
-  const onFile = useCallback(
-    async (file: File) => {
-      const text = await file.text();
-      await loadXml(text, file.name);
-      setActiveTemplateId(null); // user-loaded file is not one of ours
-    },
-    [loadXml],
+    [loadXml, setToast],
   );
 
   const saveBiosim = useCallback(
@@ -182,6 +133,132 @@ export function App() {
       applyBiosimSave(result.fileName, null, "download");
     },
     [doc, biosimFileHandle, applyBiosimSave],
+  );
+
+  const runExportPng = useCallback(async () => {
+    if (!doc) {
+      setToast("Load a document first");
+      return;
+    }
+    try {
+      await exportCanvasViewPng({
+        view,
+        baseName: doc.sourceName ?? "biosim-view",
+      });
+      setToast("PNG downloaded");
+    } catch (e) {
+      setToast((e as Error).message);
+    }
+  }, [doc, view, setToast]);
+
+  const showHelp = useCallback(() => setHelpOpen(true), []);
+  const closeHelp = useCallback(() => setHelpOpen(false), []);
+
+  useEffect(() => {
+    if (doc) return;
+    loadBundledTemplate(DEFAULT_TEMPLATE_ID);
+  }, [doc, loadBundledTemplate]);
+
+  useEffect(() => {
+    if (!loadAutosavePreference()) return;
+    const s = readSession();
+    if (s) setSessionOffer(s);
+  }, []);
+
+  useEffect(() => {
+    if (!autosaveEnabled || !doc) return;
+    const id = window.setTimeout(() => persistSession(doc), 1500);
+    return () => window.clearTimeout(id);
+  }, [doc, autosaveEnabled]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      const tag = target?.tagName ?? "";
+      const inHtmlField = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+
+      if (e.key === "Escape") {
+        if (helpOpen) {
+          e.preventDefault();
+          closeHelp();
+          return;
+        }
+        if (!inHtmlField) selectModule(null);
+        return;
+      }
+
+      if (inHtmlField) return;
+
+      if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+        e.preventDefault();
+        showHelp();
+        return;
+      }
+
+      const mod = e.metaKey || e.ctrlKey;
+
+      if (e.altKey && !mod && /^[1-5]$/.test(e.key)) {
+        e.preventDefault();
+        const v = viewFromDigit(e.key);
+        if (v) setView(v);
+        return;
+      }
+
+      if (mod && (e.key === "s" || e.key === "S")) {
+        e.preventDefault();
+        void saveBiosim(false);
+        return;
+      }
+      if (mod && (e.key === "o" || e.key === "O")) {
+        e.preventDefault();
+        openFileRef.current?.click();
+        return;
+      }
+
+      if (!mod) return;
+      if (e.key === "z" || e.key === "Z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (e.key === "y" && e.ctrlKey) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [
+    undo,
+    redo,
+    saveBiosim,
+    selectModule,
+    setView,
+    showHelp,
+    closeHelp,
+    helpOpen,
+  ]);
+
+  const dismissSessionOffer = useCallback(() => {
+    clearSession();
+    setSessionOffer(null);
+  }, []);
+
+  const restoreSessionOffer = useCallback(() => {
+    if (!sessionOffer) return;
+    setDoc(sessionOffer.doc);
+    setActiveTemplateId(null);
+    setSessionOffer(null);
+  }, [sessionOffer, setDoc]);
+
+  const onFile = useCallback(
+    async (file: File) => {
+      const text = await file.text();
+      await loadXml(text, file.name);
+      setActiveTemplateId(null); // user-loaded file is not one of ours
+    },
+    [loadXml],
   );
 
   return (
@@ -211,6 +288,7 @@ export function App() {
         <label className="file-button">
           <button type="button">Open .biosim</button>
           <input
+            ref={openFileRef}
             type="file"
             accept=".biosim,.xml,application/xml,text/xml"
             onChange={(e) => {
@@ -257,7 +335,7 @@ export function App() {
       <Palette />
 
       <div className="canvas">
-        <ViewSwitcher />
+        <ViewSwitcher onExportPng={runExportPng} onShowHelp={showHelp} />
         {doc ? (
           view === "schematic" ? (
             <Schematic />
@@ -276,6 +354,8 @@ export function App() {
       </div>
 
       <SidePanel />
+
+      <KeyboardShortcutsModal open={helpOpen} onClose={closeHelp} />
 
       <div className="statusbar">
         <span>
@@ -321,17 +401,16 @@ export function App() {
 
 function EmptyState() {
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        display: "grid",
-        placeItems: "center",
-        color: "var(--text-muted)",
-        fontSize: 13,
-      }}
-    >
-      Open a .biosim file to begin.
+    <div className="empty-canvas">
+      <p className="empty-canvas-title">No document in memory yet</p>
+      <p className="empty-canvas-lead">
+        A bundled template loads automatically. If this message persists, check the network tab
+        or use <strong>Open .biosim</strong> in the bar above.
+      </p>
+      <p className="empty-canvas-hint">
+        <kbd className="kbd-keys">⌘O</kbd> / <kbd className="kbd-keys">Ctrl+O</kbd> open a file ·{" "}
+        <kbd className="kbd-keys">?</kbd> shortcuts
+      </p>
     </div>
   );
 }

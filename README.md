@@ -14,15 +14,56 @@ even with stakeholders who do not know the BioSim XML schema.
 > and not a good medium for collaborative design. BioSimCanvas is the
 > friendlier face for that work.
 
-This repository currently contains the **systems-engineering artifacts**
-that define what BioSimCanvas should be, before any code is written.
-The artifacts are intended to be refined recursively as our
-understanding sharpens.
+This repository holds the **BioSimCanvas web app** (`app/`) and
+**systems-engineering documents** (`docs/`), refined as the design evolves.
+
+## Setup
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) **18+** (LTS recommended) and **npm**
+- A clone of this repository
+
+### Install and run the app
+
+Run these from the `app/` directory:
+
+```bash
+cd app
+npm install
+npm run dev
+```
+
+Open the URL Vite prints (usually `http://localhost:5173`). Load a
+`.biosim` via the file/open affordance in the UI or by opening it from
+your OS if your browser is configured that way.
+
+Other commands (still from `app/`):
+
+| Command | Purpose |
+| --- | --- |
+| `npm run build` | Production build (`dist/`) — runs `tsc -b` then Vite |
+| `npm run preview` | Serve the last production build locally |
+| `npm run lint` | Typecheck (`tsc -b --noEmit`) |
+
+**Optional upstream compliance check:** after you have
+[`biosim-as-reference/`](#reference-material-not-committed) with
+`configuration/**/*.biosim`, run:
+
+```bash
+cd app
+npm run check:reference-configs
+```
+
+That verifies parse and round-trip parity for every such file. Use
+`VERBOSE=1` to print each structural validation finding. Override the
+scan root with `BIOSIM_CONFIG_DIR` or a path argument (see
+`app/scripts/check-reference-configs.mjs`).
 
 ## Status
 
-- Phase: **Discovery & Definition** (pre-implementation).
-- Next deliverable: the SE document set under `docs/`.
+- Phase: **Active development** — SPA in `app/`.
+- Requirements and vision: `docs/`.
 
 ## Document Set
 

@@ -125,7 +125,12 @@ export function buildSchematic(doc: BiosimDocument): {
 
 // --- edges ---------------------------------------------------------------
 
-function computeEdges(
+/**
+ * Build the producer → consumer flow edges from the canonical module
+ * list. Exported so views other than the schematic (e.g. the spatial
+ * view) can reuse the identical edge styling and colour conventions.
+ */
+export function computeEdges(
   modules: ModuleNode[],
   byName: Map<string, ModuleNode>,
 ): Edge<SchematicEdgeData>[] {

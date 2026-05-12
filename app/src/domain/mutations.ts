@@ -16,7 +16,9 @@ import type {
   Globals,
   MalfunctionSpec,
   ModuleNode,
+  Position,
   SensorSpec,
+  SpatialLayout,
 } from "./types";
 
 // --- Globals -------------------------------------------------------------
@@ -77,11 +79,10 @@ export function renameModule(
     throw new RenameCollisionError(newName);
   }
 
-  return {
+  const renamed: BiosimDocument = {
     ...doc,
     modules: doc.modules.map((m) => {
       const renamedSelf = m.moduleName === oldName ? { ...m, moduleName: newName } : m;
-      // Update endpoint refs that point at the old name.
       let endpointsChanged = false;
       const endpoints = renamedSelf.endpoints.map((ep) => {
         if (!ep.refs.includes(oldName)) return ep;
@@ -94,6 +95,8 @@ export function renameModule(
       s.input === oldName ? { ...s, input: newName } : s,
     ),
   };
+
+  return renameModuleInLayout(renamed, oldName, newName);
 }
 
 // --- Endpoints -----------------------------------------------------------
@@ -170,6 +173,61 @@ export function patchCrewActivity(
       return { ...m, crew };
     }),
   };
+}
+
+// --- Spatial layout ------------------------------------------------------
+
+export function setModulePosition(
+  doc: BiosimDocument,
+  moduleName: string,
+  position: Position,
+): BiosimDocument {
+  const next: SpatialLayout = { ...(doc.spatialLayout ?? {}) };
+  next[moduleName] = position;
+  return { ...doc, spatialLayout: next };
+}
+
+/**
+ * Merge a batch of positions into the layout in a single update.
+ * Used by the spatial view when a room is dragged: the room and every
+ * module currently inside it are translated together.
+ */
+export function bulkSetPositions(
+  doc: BiosimDocument,
+  positions: Record<string, Position>,
+): BiosimDocument {
+  if (Object.keys(positions).length === 0) return doc;
+  const next: SpatialLayout = { ...(doc.spatialLayout ?? {}) };
+  for (const [name, p] of Object.entries(positions)) {
+    next[name] = p;
+  }
+  return { ...doc, spatialLayout: next };
+}
+
+/** Replace the entire layout (e.g. after loading a sidecar JSON). */
+export function setSpatialLayout(
+  doc: BiosimDocument,
+  layout: SpatialLayout | undefined,
+): BiosimDocument {
+  if (!layout || Object.keys(layout).length === 0) {
+    const { spatialLayout: _drop, ...rest } = doc;
+    void _drop;
+    return rest;
+  }
+  return { ...doc, spatialLayout: { ...layout } };
+}
+
+export function renameModuleInLayout(
+  doc: BiosimDocument,
+  oldName: string,
+  newName: string,
+): BiosimDocument {
+  const layout = doc.spatialLayout;
+  if (!layout || !(oldName in layout) || oldName === newName) return doc;
+  const next: SpatialLayout = { ...layout };
+  next[newName] = next[oldName];
+  delete next[oldName];
+  return { ...doc, spatialLayout: next };
 }
 
 // --- Sensors -------------------------------------------------------------

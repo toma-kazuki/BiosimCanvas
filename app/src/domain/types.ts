@@ -141,6 +141,27 @@ export interface Globals {
 }
 
 /**
+ * Module position in the spatial view, in flow-canvas coordinates.
+ * `x` and `y` are the top-left of the node. `w` and `h` are only used
+ * for SimEnvironment "room" boxes — regular hardware/store modules
+ * always use their fixed node dimensions.
+ */
+export interface Position {
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+}
+
+/**
+ * Per-module positions for the spatial view, keyed by `moduleName`.
+ * Persisted via the sidecar JSON file (`<basename>.biosim.canvas.json`,
+ * see docs/03-requirements.md F-VIEW-2) so the `.biosim` XML stays
+ * semantically pure — no layout pollution.
+ */
+export type SpatialLayout = Record<string, Position>;
+
+/**
  * Top-level document model. Maps roughly 1:1 to the `<biosim>` root.
  */
 export interface BiosimDocument {
@@ -149,6 +170,12 @@ export interface BiosimDocument {
   globals: Globals;
   modules: ModuleNode[];
   sensors: SensorSpec[];
+  /**
+   * Optional user-placed positions for the spatial view. Modules not
+   * present here fall back to the default grid layout (computed in
+   * `domain/spatialLayout.ts`).
+   */
+  spatialLayout?: SpatialLayout;
   /** Anything else under <SimBioModules> / <Sensors> we did not model. */
   unknownRoot?: UnknownXml[];
 }

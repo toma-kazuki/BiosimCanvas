@@ -2,6 +2,7 @@ import { useCanvasStore, type CanvasView } from "../../state/store";
 
 const VIEWS: { id: CanvasView; label: string }[] = [
   { id: "schematic", label: "Schematic" },
+  { id: "spatial", label: "Spatial" },
   { id: "timeline", label: "Timeline" },
   { id: "xml", label: "XML" },
 ];

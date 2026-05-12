@@ -5,6 +5,7 @@ import { Schematic } from "./schematic/Schematic";
 import { SidePanel } from "./side-panel/SidePanel";
 import { Palette } from "./common/Palette";
 import { ViewSwitcher } from "./common/ViewSwitcher";
+import { Spatial } from "./spatial/Spatial";
 import { Timeline } from "./timeline/Timeline";
 import { XmlView } from "./xml-view/XmlView";
 
@@ -129,6 +130,8 @@ export function App() {
         {doc ? (
           view === "schematic" ? (
             <Schematic />
+          ) : view === "spatial" ? (
+            <Spatial />
           ) : view === "timeline" ? (
             <Timeline />
           ) : (

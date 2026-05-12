@@ -6,9 +6,12 @@ import type {
   FlowEndpoint,
   Globals,
   MalfunctionSpec,
+  Position,
   SensorSpec,
+  SpatialLayout,
 } from "../domain/types";
 import {
+  bulkSetPositions,
   patchCrewActivity,
   patchCrewPerson,
   patchEndpoint,
@@ -17,9 +20,11 @@ import {
   patchSensor,
   renameModule,
   setMalfunction,
+  setModulePosition,
+  setSpatialLayout,
 } from "../domain/mutations";
 
-export type CanvasView = "schematic" | "timeline" | "xml";
+export type CanvasView = "schematic" | "spatial" | "timeline" | "xml";
 
 interface CanvasState {
   doc: BiosimDocument | null;
@@ -55,6 +60,9 @@ interface CanvasState {
     patch: Partial<CrewActivity>,
   ) => void;
   patchSensor: (sensorName: string, patch: Partial<SensorSpec>) => void;
+  setModulePosition: (moduleName: string, position: Position) => void;
+  bulkSetPositions: (positions: Record<string, Position>) => void;
+  setSpatialLayout: (layout: SpatialLayout | undefined) => void;
 }
 
 function requireDoc(state: CanvasState): BiosimDocument {
@@ -114,4 +122,13 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
 
   patchSensor: (sensorName, patch) =>
     set({ doc: patchSensor(requireDoc(get()), sensorName, patch) }),
+
+  setModulePosition: (moduleName, position) =>
+    set({ doc: setModulePosition(requireDoc(get()), moduleName, position) }),
+
+  bulkSetPositions: (positions) =>
+    set({ doc: bulkSetPositions(requireDoc(get()), positions) }),
+
+  setSpatialLayout: (layout) =>
+    set({ doc: setSpatialLayout(requireDoc(get()), layout) }),
 }));

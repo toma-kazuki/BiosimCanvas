@@ -182,6 +182,105 @@ button.primary:hover {
   line-height: 1.5;
 }
 
+.side .section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.side .section-head h3 {
+  margin: 0;
+}
+
+.side .section-head button {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+.side .endpoint {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+}
+
+.side .endpoint-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+
+.side .endpoint-tag {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.side .endpoint-resource {
+  color: var(--text);
+}
+
+.side .crew-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: var(--surface-2);
+}
+
+.side .schedule {
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
+  margin-top: 6px;
+}
+
+.side .activity-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 2px;
+}
+
+.side .toast {
+  background: rgba(227, 99, 90, 0.18);
+  border: 1px solid var(--err);
+  color: var(--err);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+input.field,
+select.field {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font: inherit;
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+  font-size: 12px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+input.field:focus,
+select.field:focus {
+  outline: 1.5px solid var(--accent);
+  outline-offset: 0;
+  border-color: var(--accent);
+}
+
 .statusbar {
   grid-area: status;
   display: flex;

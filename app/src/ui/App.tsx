@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCanvasStore } from "../state/store";
+import {
+  clearSession,
+  loadAutosavePreference,
+  persistSession,
+  readSession,
+  type StoredSessionV1,
+} from "../session/autosave";
 import { parseBiosim } from "../io/parseBiosim";
 import { emitBiosim } from "../io/emitBiosim";
 import { defaultBiosimFilename, saveBiosimFile } from "../io/saveBiosimFile";
@@ -53,10 +60,17 @@ const DEFAULT_TEMPLATE_ID = "template";
 export function App() {
   const doc = useCanvasStore((s) => s.doc);
   const setDoc = useCanvasStore((s) => s.setDoc);
+  const undo = useCanvasStore((s) => s.undo);
+  const redo = useCanvasStore((s) => s.redo);
+  const pastLen = useCanvasStore((s) => s.past.length);
+  const futureLen = useCanvasStore((s) => s.future.length);
+  const autosaveEnabled = useCanvasStore((s) => s.autosaveEnabled);
+  const setAutosaveEnabled = useCanvasStore((s) => s.setAutosaveEnabled);
   const view = useCanvasStore((s) => s.view);
   const biosimFileHandle = useCanvasStore((s) => s.biosimFileHandle);
   const applyBiosimSave = useCanvasStore((s) => s.applyBiosimSave);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [sessionOffer, setSessionOffer] = useState<StoredSessionV1 | null>(null);
 
   const loadXml = useCallback(
     async (xml: string, sourceName: string) => {
@@ -93,6 +107,53 @@ export function App() {
     loadBundledTemplate(DEFAULT_TEMPLATE_ID);
   }, [doc, loadBundledTemplate]);
 
+  useEffect(() => {
+    if (!loadAutosavePreference()) return;
+    const s = readSession();
+    if (s) setSessionOffer(s);
+  }, []);
+
+  useEffect(() => {
+    if (!autosaveEnabled || !doc) return;
+    const id = window.setTimeout(() => persistSession(doc), 1500);
+    return () => window.clearTimeout(id);
+  }, [doc, autosaveEnabled]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement) {
+        const t = e.target.tagName;
+        if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
+      }
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+      if (e.key === "z" || e.key === "Z") {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      if (e.key === "y" && e.ctrlKey) {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
+
+  const dismissSessionOffer = useCallback(() => {
+    clearSession();
+    setSessionOffer(null);
+  }, []);
+
+  const restoreSessionOffer = useCallback(() => {
+    if (!sessionOffer) return;
+    setDoc(sessionOffer.doc);
+    setActiveTemplateId(null);
+    setSessionOffer(null);
+  }, [sessionOffer, setDoc]);
+
   const onFile = useCallback(
     async (file: File) => {
       const text = await file.text();
@@ -124,7 +185,7 @@ export function App() {
   );
 
   return (
-    <div className="app">
+    <div className={sessionOffer ? "app app--session-offer" : "app"}>
       <div className="appbar">
         <div className="brand">BioSimCanvas</div>
         <div className="filename">{doc?.sourceName ?? "(no file)"}</div>
@@ -175,6 +236,24 @@ export function App() {
         </button>
       </div>
 
+      {sessionOffer && (
+        <div className="session-restore">
+          <span className="session-restore-text">
+            Restore previous session from{" "}
+            {new Date(sessionOffer.savedAt).toLocaleString()}
+            {sessionOffer.sourceName ? ` (${sessionOffer.sourceName})` : ""}?
+          </span>
+          <div className="session-restore-actions">
+            <button type="button" className="primary" onClick={restoreSessionOffer}>
+              Restore
+            </button>
+            <button type="button" onClick={dismissSessionOffer}>
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
       <Palette />
 
       <div className="canvas">
@@ -204,6 +283,35 @@ export function App() {
             ? `${doc.modules.length} modules · ${doc.sensors.length} sensors`
             : "Loading template.biosim…"}
         </span>
+        <span className="statusbar-sep" aria-hidden>
+          ·
+        </span>
+        <button
+          type="button"
+          className="status-undo"
+          disabled={pastLen === 0}
+          title="Undo (⌘/Ctrl+Z)"
+          onClick={() => undo()}
+        >
+          Undo
+        </button>
+        <button
+          type="button"
+          className="status-redo"
+          disabled={futureLen === 0}
+          title="Redo (⌘/Ctrl+Shift+Z or Ctrl+Y)"
+          onClick={() => redo()}
+        >
+          Redo
+        </button>
+        <label className="autosave-toggle">
+          <input
+            type="checkbox"
+            checked={autosaveEnabled}
+            onChange={(e) => setAutosaveEnabled(e.target.checked)}
+          />
+          Session autosave
+        </label>
         <span style={{ flex: 1 }} />
         <span>BioSimCanvas v0.x · local-first authoring</span>
       </div>

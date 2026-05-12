@@ -28,6 +28,13 @@ import {
   setModulePosition,
   setSpatialLayout,
 } from "../domain/mutations";
+import { clearSession, loadAutosavePreference, saveAutosavePreference } from "../session/autosave";
+import {
+  redoSnapshot,
+  selectionAfterDocChange,
+  undoSnapshot,
+  withHistory,
+} from "./history";
 
 export type CanvasView = "schematic" | "spatial" | "timeline" | "xml" | "review";
 
@@ -45,10 +52,24 @@ interface CanvasState {
    */
   biosimFileHandle: FileSystemFileHandle | null;
 
+  /** Undo stack — snapshots before each editing mutation. */
+  past: BiosimDocument[];
+  /** Redo stack — snapshots shelved by undo. */
+  future: BiosimDocument[];
+
+  /** When true, debounced writes go to localStorage (session backup). */
+  autosaveEnabled: boolean;
+
   setDoc: (doc: BiosimDocument | null) => void;
+  /** Replace document from XML Apply — keeps biosim handle; participates in undo. */
+  replaceDoc: (doc: BiosimDocument) => void;
   selectModule: (name: string | null) => void;
   setView: (v: CanvasView) => void;
   setToast: (msg: string | null) => void;
+  setAutosaveEnabled: (enabled: boolean) => void;
+  undo: () => void;
+  redo: () => void;
+
   /** After Save to disk — updates `sourceName` and optional write handle. */
   applyBiosimSave: (
     fileName: string,
@@ -91,14 +112,65 @@ function requireDoc(state: CanvasState): BiosimDocument {
   return state.doc;
 }
 
-export const useCanvasStore = create<CanvasState>((set, get) => ({
+export const useCanvasStore = create<CanvasState>((set) => ({
   doc: null,
   selectedModuleName: null,
   view: "schematic",
   toast: null,
   biosimFileHandle: null,
+  past: [],
+  future: [],
+  autosaveEnabled: loadAutosavePreference(),
 
-  setDoc: (doc) => set({ doc, selectedModuleName: null, toast: null, biosimFileHandle: null }),
+  setDoc: (doc) =>
+    set({
+      doc,
+      selectedModuleName: null,
+      toast: null,
+      biosimFileHandle: null,
+      past: [],
+      future: [],
+    }),
+
+  replaceDoc: (next) =>
+    set((s) => {
+      const h = withHistory(s.doc, s.past, next);
+      return {
+        ...h,
+        selectedModuleName: selectionAfterDocChange(s.selectedModuleName, h.doc),
+        toast: null,
+      };
+    }),
+
+  selectModule: (name) => set({ selectedModuleName: name }),
+  setView: (v) => set({ view: v }),
+  setToast: (msg) => set({ toast: msg }),
+
+  setAutosaveEnabled: (enabled) => {
+    saveAutosavePreference(enabled);
+    if (!enabled) clearSession();
+    set({ autosaveEnabled: enabled });
+  },
+
+  undo: () =>
+    set((s) => {
+      const step = undoSnapshot(s.doc, s.past, s.future);
+      if (!step) return s;
+      return {
+        ...step,
+        selectedModuleName: selectionAfterDocChange(s.selectedModuleName, step.doc),
+      };
+    }),
+
+  redo: () =>
+    set((s) => {
+      const step = redoSnapshot(s.doc, s.past, s.future);
+      if (!step) return s;
+      return {
+        ...step,
+        selectedModuleName: selectionAfterDocChange(s.selectedModuleName, step.doc),
+      };
+    }),
 
   applyBiosimSave: (fileName, handle, mode) =>
     set((state) => {
@@ -114,23 +186,29 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
         toast,
       };
     }),
-  selectModule: (name) => set({ selectedModuleName: name }),
-  setView: (v) => set({ view: v }),
-  setToast: (msg) => set({ toast: msg }),
 
-  patchGlobals: (patch) => set({ doc: patchGlobals(requireDoc(get()), patch) }),
+  patchGlobals: (patch) =>
+    set((s) => {
+      const next = patchGlobals(requireDoc(s), patch);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   patchModuleAttr: (moduleName, key, value) =>
-    set({ doc: patchModuleAttr(requireDoc(get()), moduleName, key, value) }),
+    set((s) => {
+      const next = patchModuleAttr(requireDoc(s), moduleName, key, value);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   renameModule: (oldName, newName) => {
     try {
-      const next = renameModule(requireDoc(get()), oldName, newName);
-      set({
-        doc: next,
-        selectedModuleName:
-          get().selectedModuleName === oldName ? newName : get().selectedModuleName,
-        toast: null,
+      set((s) => {
+        const next = renameModule(requireDoc(s), oldName, newName);
+        return {
+          ...withHistory(s.doc, s.past, next),
+          selectedModuleName:
+            s.selectedModuleName === oldName ? newName : s.selectedModuleName,
+          toast: null,
+        };
       });
     } catch (err) {
       set({ toast: (err as Error).message });
@@ -138,59 +216,94 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   },
 
   patchEndpoint: (moduleName, index, patch) =>
-    set({ doc: patchEndpoint(requireDoc(get()), moduleName, index, patch) }),
+    set((s) => {
+      const next = patchEndpoint(requireDoc(s), moduleName, index, patch);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   setMalfunction: (moduleName, malf) =>
-    set({ doc: setMalfunction(requireDoc(get()), moduleName, malf) }),
+    set((s) => {
+      const next = setMalfunction(requireDoc(s), moduleName, malf);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   addModule: (mod) => {
     try {
-      const next = addModule(requireDoc(get()), mod);
-      set({ doc: next, selectedModuleName: mod.moduleName, toast: null });
+      set((s) => {
+        const next = addModule(requireDoc(s), mod);
+        return {
+          ...withHistory(s.doc, s.past, next),
+          selectedModuleName: mod.moduleName,
+          toast: null,
+        };
+      });
     } catch (err) {
       set({ toast: (err as Error).message });
     }
   },
 
-  deleteModule: (name) => {
-    const next = deleteModule(requireDoc(get()), name);
-    set({
-      doc: next,
-      selectedModuleName:
-        get().selectedModuleName === name ? null : get().selectedModuleName,
-      toast: `Deleted module ${name}`,
-    });
-  },
+  deleteModule: (name) =>
+    set((s) => {
+      const next = deleteModule(requireDoc(s), name);
+      return {
+        ...withHistory(s.doc, s.past, next),
+        selectedModuleName:
+          s.selectedModuleName === name ? null : s.selectedModuleName,
+        toast: `Deleted module ${name}`,
+      };
+    }),
 
   addEndpoint: (moduleName, endpoint) =>
-    set({ doc: addEndpoint(requireDoc(get()), moduleName, endpoint) }),
+    set((s) => {
+      const next = addEndpoint(requireDoc(s), moduleName, endpoint);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   removeEndpoint: (moduleName, index) =>
-    set({ doc: removeEndpoint(requireDoc(get()), moduleName, index) }),
+    set((s) => {
+      const next = removeEndpoint(requireDoc(s), moduleName, index);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   patchCrewPerson: (groupName, index, patch) =>
-    set({ doc: patchCrewPerson(requireDoc(get()), groupName, index, patch) }),
+    set((s) => {
+      const next = patchCrewPerson(requireDoc(s), groupName, index, patch);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   patchCrewActivity: (groupName, crewIndex, activityIndex, patch) =>
-    set({
-      doc: patchCrewActivity(
-        requireDoc(get()),
+    set((s) => {
+      const next = patchCrewActivity(
+        requireDoc(s),
         groupName,
         crewIndex,
         activityIndex,
         patch,
-      ),
+      );
+      return { ...withHistory(s.doc, s.past, next) };
     }),
 
   patchSensor: (sensorName, patch) =>
-    set({ doc: patchSensor(requireDoc(get()), sensorName, patch) }),
+    set((s) => {
+      const next = patchSensor(requireDoc(s), sensorName, patch);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   setModulePosition: (moduleName, position) =>
-    set({ doc: setModulePosition(requireDoc(get()), moduleName, position) }),
+    set((s) => {
+      const next = setModulePosition(requireDoc(s), moduleName, position);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   bulkSetPositions: (positions) =>
-    set({ doc: bulkSetPositions(requireDoc(get()), positions) }),
+    set((s) => {
+      const next = bulkSetPositions(requireDoc(s), positions);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 
   setSpatialLayout: (layout) =>
-    set({ doc: setSpatialLayout(requireDoc(get()), layout) }),
+    set((s) => {
+      const next = setSpatialLayout(requireDoc(s), layout);
+      return { ...withHistory(s.doc, s.past, next) };
+    }),
 }));

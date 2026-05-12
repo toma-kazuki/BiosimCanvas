@@ -13,7 +13,7 @@ import { parseBiosim } from "../../io/parseBiosim";
  */
 export function XmlView() {
   const doc = useCanvasStore((s) => s.doc);
-  const setDoc = useCanvasStore((s) => s.setDoc);
+  const replaceDoc = useCanvasStore((s) => s.replaceDoc);
   const setToast = useCanvasStore((s) => s.setToast);
 
   const [editing, setEditing] = useState(false);
@@ -41,7 +41,7 @@ export function XmlView() {
   const applyEdit = () => {
     try {
       const next = parseBiosim(buf, doc.sourceName);
-      setDoc(next);
+      replaceDoc(next);
       setEditing(false);
       setBuf("");
       setParseError(null);

@@ -12,6 +12,12 @@ import type {
   SensorSpec,
 } from "../../domain/types";
 import {
+  attrUnit,
+  flowRateUnit,
+  globalUnit,
+  ticksToWallClock,
+} from "../../domain/units";
+import {
   NumberArrayRow,
   NumberRow,
   RefsRow,
@@ -82,17 +88,20 @@ function DocumentInspector() {
         <h3>Globals</h3>
         <NumberRow
           label="tickLength"
+          unit={globalUnit("tickLength")}
           value={g.tickLength}
           onChange={(v) => patchGlobals({ tickLength: v })}
         />
         <TextRow
           label="runTillN"
+          unit={globalUnit("runTillN")}
           value={g.runTillN === undefined ? "" : String(g.runTillN)}
           onChange={(v) => patchGlobals({ runTillN: v === "" ? undefined : v })}
           placeholder="integer or template literal"
         />
         <NumberRow
           label="driverStutter"
+          unit={globalUnit("driverStutterLength")}
           value={g.driverStutterLength}
           onChange={(v) => patchGlobals({ driverStutterLength: v })}
         />
@@ -144,6 +153,7 @@ function ModuleInspector({ module }: { module: ModuleNode }) {
             <TextRow
               key={k}
               label={k}
+              unit={attrUnit(module.kind, k)}
               value={v}
               onChange={(next) =>
                 patchModuleAttr(module.moduleName, k, next === "" ? undefined : next)
@@ -175,7 +185,12 @@ function EndpointsSection({
   moduleName: string;
   endpoints: FlowEndpoint[];
 }) {
+  const doc = useCanvasStore((s) => s.doc)!;
   const patchEndpoint = useCanvasStore((s) => s.patchEndpoint);
+  const availableNames = useMemo(
+    () => doc.modules.map((m) => m.moduleName),
+    [doc.modules],
+  );
 
   return (
     <div className="section">
@@ -193,12 +208,15 @@ function EndpointsSection({
               </span>
             </div>
             <RefsRow
-              label="refs"
+              label={ep.kind === "producer" ? "outputs" : "inputs"}
               value={ep.refs}
+              available={availableNames}
+              selfName={moduleName}
               onChange={(refs) => patchEndpoint(moduleName, i, { refs })}
             />
             <NumberArrayRow
               label="desired"
+              unit={flowRateUnit(ep.resource)}
               value={ep.desiredFlowRates}
               onChange={(v) =>
                 patchEndpoint(moduleName, i, { desiredFlowRates: v })
@@ -206,6 +224,7 @@ function EndpointsSection({
             />
             <NumberArrayRow
               label="max"
+              unit={flowRateUnit(ep.resource)}
               value={ep.maxFlowRates}
               onChange={(v) => patchEndpoint(moduleName, i, { maxFlowRates: v })}
             />
@@ -272,6 +291,7 @@ function MalfunctionSection({ module }: { module: ModuleNode }) {
       />
       <NumberRow
         label="occursAtTick"
+        unit="tick"
         value={malf.occursAtTick}
         onChange={(v) => update({ occursAtTick: v ?? 0 })}
         step={1}
@@ -289,8 +309,11 @@ function CrewSection({
   groupName: string;
   crew: NonNullable<ModuleNode["crew"]>;
 }) {
+  const doc = useCanvasStore((s) => s.doc)!;
   const patchCrewPerson = useCanvasStore((s) => s.patchCrewPerson);
   const patchCrewActivity = useCanvasStore((s) => s.patchCrewActivity);
+
+  const tickHours = doc.globals.tickLength;
 
   return (
     <div className="section">
@@ -304,6 +327,7 @@ function CrewSection({
           />
           <NumberRow
             label="age"
+            unit="yr"
             value={c.age}
             onChange={(v) => patchCrewPerson(groupName, i, { age: v ?? 0 })}
             step={1}
@@ -316,61 +340,18 @@ function CrewSection({
           />
           <NumberRow
             label="weight"
+            unit="kg"
             value={c.weight}
             onChange={(v) => patchCrewPerson(groupName, i, { weight: v ?? 0 })}
           />
           {c.schedule.length > 0 && (
-            <div className="schedule">
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--text-muted)",
-                  marginTop: 6,
-                  marginBottom: 2,
-                  letterSpacing: "0.06em",
-                  textTransform: "uppercase",
-                }}
-              >
-                schedule (sum {c.schedule.reduce((s, a) => s + (a.length || 0), 0)}h)
-              </div>
-              {c.schedule.map((a, j) => (
-                <div key={j} className="activity-row">
-                  <input
-                    type="text"
-                    value={a.name}
-                    onChange={(e) =>
-                      patchCrewActivity(groupName, i, j, { name: e.target.value })
-                    }
-                    className="field"
-                    style={{ width: 90 }}
-                  />
-                  <input
-                    type="number"
-                    value={a.intensity}
-                    onChange={(e) =>
-                      patchCrewActivity(groupName, i, j, {
-                        intensity: Number(e.target.value),
-                      })
-                    }
-                    className="field"
-                    style={{ width: 48 }}
-                    title="intensity"
-                  />
-                  <input
-                    type="number"
-                    value={a.length}
-                    onChange={(e) =>
-                      patchCrewActivity(groupName, i, j, {
-                        length: Number(e.target.value),
-                      })
-                    }
-                    className="field"
-                    style={{ width: 48 }}
-                    title="length (hours)"
-                  />
-                </div>
-              ))}
-            </div>
+            <ScheduleTable
+              groupName={groupName}
+              personIndex={i}
+              schedule={c.schedule}
+              tickHours={tickHours}
+              onPatch={(j, patch) => patchCrewActivity(groupName, i, j, patch)}
+            />
           )}
         </div>
       ))}
@@ -378,10 +359,120 @@ function CrewSection({
   );
 }
 
+/**
+ * Daily-schedule editor. Each row is one activity; columns are
+ * (name, intensity level, duration in ticks). A header summarises the
+ * total in ticks and — given `globals.tickLength` — the equivalent
+ * wall-clock duration so the user can sanity-check against a 24-hour
+ * day.
+ *
+ * Why `length` is in *ticks* and not hours:
+ *   BioSim's `Activity.getTimeLength()` is consumed by `BaseCrewPerson`
+ *   advancing one step per simulation tick, so `length` literally means
+ *   "ticks of this activity". The XSD allows non-negative integers and
+ *   BioSim's own `Schedule.toString()` formats it as "Nh", but that
+ *   assumes the conventional 1-tick-per-hour setup. With this template
+ *   (`tickLength=0.1`) a length of 12 is 1.2 wall-clock hours, not 12.
+ */
+function ScheduleTable({
+  groupName,
+  personIndex,
+  schedule,
+  tickHours,
+  onPatch,
+}: {
+  groupName: string;
+  personIndex: number;
+  schedule: NonNullable<ModuleNode["crew"]>[number]["schedule"];
+  tickHours: number | undefined;
+  onPatch: (
+    activityIndex: number,
+    patch: { name?: string; intensity?: number; length?: number },
+  ) => void;
+}) {
+  void groupName;
+  void personIndex;
+  const totalTicks = schedule.reduce((s, a) => s + (a.length || 0), 0);
+  const wall = ticksToWallClock(totalTicks, tickHours);
+
+  return (
+    <div className="schedule">
+      <div className="schedule-head">
+        <span>schedule</span>
+        <span className="schedule-sum">
+          Σ {totalTicks} ticks{wall !== "—" ? ` ≈ ${wall}` : ""}
+        </span>
+      </div>
+      <div className="schedule-table">
+        <div className="schedule-th">activity</div>
+        <div className="schedule-th" title="Metabolic effort level (BioSim uses 0–5; affects O₂, food and water demand).">
+          intensity
+        </div>
+        <div className="schedule-th" title="Duration in simulation ticks. 1 tick = current Globals.tickLength hours.">
+          length (ticks)
+        </div>
+        {schedule.map((a, j) => (
+          <FragmentRow
+            key={j}
+            name={a.name}
+            intensity={a.intensity}
+            length={a.length}
+            onChange={(patch) => onPatch(j, patch)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FragmentRow({
+  name,
+  intensity,
+  length,
+  onChange,
+}: {
+  name: string;
+  intensity: number;
+  length: number;
+  onChange: (patch: { name?: string; intensity?: number; length?: number }) => void;
+}) {
+  return (
+    <>
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => onChange({ name: e.target.value })}
+        className="field"
+      />
+      <input
+        type="number"
+        value={intensity}
+        onChange={(e) => onChange({ intensity: Number(e.target.value) })}
+        className="field"
+        min={0}
+        step={1}
+      />
+      <input
+        type="number"
+        value={length}
+        onChange={(e) => onChange({ length: Number(e.target.value) })}
+        className="field"
+        min={0}
+        step={1}
+      />
+    </>
+  );
+}
+
 // --- Sensors list (rendered on the document inspector) -------------------
 
 function SensorListInspector({ sensors }: { sensors: SensorSpec[] }) {
+  const doc = useCanvasStore((s) => s.doc)!;
   const patchSensor = useCanvasStore((s) => s.patchSensor);
+  const availableNames = useMemo(
+    () => doc.modules.map((m) => m.moduleName),
+    [doc.modules],
+  );
   return (
     <div className="section">
       <h3>Sensors</h3>
@@ -391,10 +482,12 @@ function SensorListInspector({ sensors }: { sensors: SensorSpec[] }) {
             <span className="endpoint-tag">{s.kind}</span>
             <span className="endpoint-resource">{s.moduleName}</span>
           </div>
-          <TextRow
+          <RefsRow
             label="input"
-            value={s.input}
-            onChange={(v) => patchSensor(s.moduleName, { input: v })}
+            value={s.input ? [s.input] : []}
+            available={availableNames}
+            multi={false}
+            onChange={(refs) => patchSensor(s.moduleName, { input: refs[0] ?? "" })}
           />
           {s.gasType !== undefined && (
             <TextRow

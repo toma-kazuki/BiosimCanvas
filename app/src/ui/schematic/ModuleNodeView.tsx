@@ -9,11 +9,12 @@ export function ModuleNodeView(props: NodeProps) {
   const subLabel = meta?.label ?? module.kind;
   const sub = module.subsystem;
   const glyph = meta?.glyph ?? "??";
+  const isStore = module.kind.endsWith("Store");
   const meta2 = secondaryLine(module);
 
   return (
     <div
-      className={`mod-node${selected ? " selected" : ""}`}
+      className={`mod-node${selected ? " selected" : ""}${isStore ? " store" : ""}`}
       style={{ borderColor: SUBSYSTEM_COLOR[sub] }}
     >
       <Handle type="target" position={Position.Left} />

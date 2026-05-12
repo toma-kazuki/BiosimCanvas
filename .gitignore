@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+*.swp
+
+# Local BioSim clone kept here for offline reference; not part of this repo.
+biosim-as-reference/
+
+# Node / web tooling (anticipated; harmless until the SPA exists)
+node_modules/
+dist/
+build/
+.vite/
+.cache/
+coverage/
+
+# Env & editor
+.env
+.env.*
+.idea/
+.vscode/
+
+# Logs
+*.log
+logs/

@@ -15,7 +15,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, "..");
 
 const TARGETS = [
+  "public/templates/empty-minimal.biosim",
   "public/templates/template.biosim",
+  "public/templates/lunar-minihab.biosim",
   "public/templates/template-anomalies.biosim",
 ];
 

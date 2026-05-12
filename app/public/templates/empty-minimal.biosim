@@ -1,0 +1,18 @@
+<biosim xmlns="http://www.traclabs.com/biosim"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.traclabs.com/biosim ../../schema/BiosimInitSchema.xsd">
+	<Globals driverStutterLength="0"
+		runTillCrewDeath="false" runTillN="100" startPaused="false" tickLength="1">
+	</Globals>
+	<SimBioModules>
+		<environment>
+			<SimEnvironment moduleName="Hab" initialVolume="500" />
+		</environment>
+		<power>
+			<PowerStore capacity="10000" moduleName="Battery" level="5000" />
+			<PowerPS moduleName="SolarArray" generationType="NUCLEAR" upperPowerGeneration="8000">
+				<powerProducer desiredFlowRates="5000" outputs="Battery" maxFlowRates="5000" />
+			</PowerPS>
+		</power>
+	</SimBioModules>
+</biosim>

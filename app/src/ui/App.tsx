@@ -23,10 +23,22 @@ interface BundledTemplate {
 
 const BUNDLED_TEMPLATES: BundledTemplate[] = [
   {
+    id: "empty",
+    label: "Empty / minimal",
+    path: "/templates/empty-minimal.biosim",
+    displayName: "empty-minimal.biosim",
+  },
+  {
     id: "template",
-    label: "Default",
+    label: "Default (ISS-class)",
     path: "/templates/template.biosim",
     displayName: "template.biosim",
+  },
+  {
+    id: "lunar-minihab",
+    label: "Lunar minihab",
+    path: "/templates/lunar-minihab.biosim",
+    displayName: "lunar-minihab.biosim",
   },
   {
     id: "anomalies",

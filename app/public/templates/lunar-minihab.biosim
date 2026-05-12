@@ -2,35 +2,35 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.traclabs.com/biosim ../../schema/BiosimInitSchema.xsd">
 	<Globals driverStutterLength="0"
-		crewsToWatch="IHab_Group"
+		crewsToWatch="LHab_Group"
 		runTillCrewDeath="false" runTillN="{max_ticks}" startPaused="false" tickLength="0.1">
 	</Globals>
 	<SimBioModules>
 		<environment>
-			<SimEnvironment moduleName="IHab" initialVolume="22900"> 
+			<SimEnvironment moduleName="LHab" initialVolume="22900"> 
 			</SimEnvironment>
-			<SimEnvironment moduleName="HALO" initialVolume="22900" />
+			<SimEnvironment moduleName="Airlock" initialVolume="22900" />
 			<Dehumidifier moduleName="Main_Dehumidifier">
-				<airConsumer inputs="IHab"
+				<airConsumer inputs="LHab"
 					desiredFlowRates="0.3" maxFlowRates="0.3"></airConsumer>
 				<dirtyWaterProducer desiredFlowRates="10000"
 					outputs="Dirty_Water_Store" maxFlowRates="10000" />
 			</Dehumidifier>
-			<Fan moduleName="IHab_to_HALO_Fan">
-				<airConsumer inputs="IHab"
+			<Fan moduleName="LHab_to_Airlock_Fan">
+				<airConsumer inputs="LHab"
 					desiredFlowRates="40" maxFlowRates="40" />
 				<powerConsumer inputs="General_Power_Store"
 					desiredFlowRates="9000" maxFlowRates="9000" ></powerConsumer>
 				<airProducer desiredFlowRates="40"
-					outputs="HALO" maxFlowRates="40" ></airProducer>
+					outputs="Airlock" maxFlowRates="40" ></airProducer>
 			</Fan>
-			<Fan moduleName="HALO_to_IHab_Fan">
-				<airConsumer inputs="HALO"
+			<Fan moduleName="Airlock_to_LHab_Fan">
+				<airConsumer inputs="Airlock"
 					desiredFlowRates="40" maxFlowRates="40" />
 				<powerConsumer inputs="General_Power_Store" desiredFlowRates="50"
 					maxFlowRates="50"></powerConsumer>
 				<airProducer desiredFlowRates="40"
-					outputs="IHab" maxFlowRates="40" ></airProducer>
+					outputs="LHab" maxFlowRates="40" ></airProducer>
 			</Fan>
 		</environment>
 		<air>
@@ -40,10 +40,10 @@
 			<VCCR moduleName="Main_VCCR" logLevel="INFO">
 				<powerConsumer inputs="General_Power_Store"
 					desiredFlowRates="340" maxFlowRates="1000" ></powerConsumer>
-				<airConsumer inputs="IHab"
+				<airConsumer inputs="LHab"
 					desiredFlowRates="10000" maxFlowRates="10000"></airConsumer>
 				<airProducer desiredFlowRates="10000"
-					outputs="IHab" maxFlowRates="10000" />
+					outputs="LHab" maxFlowRates="10000" />
 				<CO2Producer desiredFlowRates="10000" outputs="CO2_Store"
 					maxFlowRates="10000"></CO2Producer>
 			</VCCR>
@@ -66,28 +66,28 @@
 			</CO2Store>
 		</air>
 		<framework>
-			<Injector moduleName="Oxygen_Injector_IHab">
+			<Injector moduleName="Oxygen_Injector_LHab">
 				<O2Consumer inputs="O2_Store" desiredFlowRates="0.0"
 					maxFlowRates="0.0" >
 				</O2Consumer>
 				<O2Producer desiredFlowRates="0.0"
-					outputs="IHab" maxFlowRates="0.0" >
+					outputs="LHab" maxFlowRates="0.0" >
 				</O2Producer>
 			</Injector>
-			<Injector moduleName="Oxygen_Injector_HALO">
+			<Injector moduleName="Oxygen_Injector_Airlock">
 				<O2Consumer inputs="O2_Store" desiredFlowRates="0.0"
 					maxFlowRates="0.0" >
 				</O2Consumer>
 				<O2Producer desiredFlowRates="0.0"
-					outputs="HALO" maxFlowRates="0.0" >
+					outputs="Airlock" maxFlowRates="0.0" >
 				</O2Producer>
 			</Injector>
-			<Injector moduleName="Nitrogen_Injector_HALO">
+			<Injector moduleName="Nitrogen_Injector_Airlock">
 				<nitrogenConsumer inputs="Nitrogen_Store" desiredFlowRates="0.0"
 					maxFlowRates="0.0" >
 				</nitrogenConsumer>
 				<nitrogenProducer desiredFlowRates="0.0"
-					outputs="HALO" maxFlowRates="0.0" >
+					outputs="Airlock" maxFlowRates="0.0" >
 				</nitrogenProducer>
 			</Injector>
 		</framework>
@@ -135,11 +135,11 @@
 			</DryWasteStore>
 		</waste>
 		<crew>
-			<CrewGroup moduleName="IHab_Group">
+			<CrewGroup moduleName="LHab_Group">
 				<potableWaterConsumer inputs="Potable_Water_Store"
 					desiredFlowRates="3" maxFlowRates="3">
 				</potableWaterConsumer>
-				<airConsumer inputs="IHab" desiredFlowRates="0"
+				<airConsumer inputs="LHab" desiredFlowRates="0"
 					maxFlowRates="0" />
 				<foodConsumer inputs="Food_Store" desiredFlowRates="5"
 					maxFlowRates="5">
@@ -149,7 +149,7 @@
 				</dirtyWaterProducer>
 				<greyWaterProducer desiredFlowRates="100"
 					outputs="Grey_Water_Store" maxFlowRates="100" />
-				<airProducer desiredFlowRates="0" outputs="IHab"
+				<airProducer desiredFlowRates="0" outputs="LHab"
 					maxFlowRates="0" />
 				<dryWasteProducer desiredFlowRates="10"
 					outputs="Dry_Waste_Store" maxFlowRates="10">
@@ -179,14 +179,14 @@
 	</SimBioModules>
 	<Sensors>
 		<environment>
-			<GasPressureSensor input="IHab" moduleName="ppCO2_IHab" gasType="CO2">
+			<GasPressureSensor input="LHab" moduleName="ppCO2_LHab" gasType="CO2">
 				<alarms>
 					<warning_high min="0.25" max="0.35"/>
 					<critical_high min="0.35" max="100"/>
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</GasPressureSensor>
-			<GasPressureSensor input="IHab" moduleName="ppO2_IHab" gasType="O2">
+			<GasPressureSensor input="LHab" moduleName="ppO2_LHab" gasType="O2">
 				<alarms>
 					<critical_low min="0" max="19"/>
 					<warning_low min="19" max="20.665"/>
@@ -195,7 +195,7 @@
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</GasPressureSensor>
-    		<GasConcentrationSensor input="IHab" moduleName="Humidity_IHab" gasType="VAPOR">
+    		<GasConcentrationSensor input="LHab" moduleName="Humidity_LHab" gasType="VAPOR">
 				<alarms>
 					<critical_low min="0" max="0.40"/>
 					<warning_low min="0.40" max="0.50"/>
@@ -204,7 +204,7 @@
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</GasConcentrationSensor>
-			<TotalPressureSensor input="IHab" moduleName="Total_Cabin_Pressure_IHab">
+			<TotalPressureSensor input="LHab" moduleName="Total_Cabin_Pressure_LHab">
 				<alarms>
 					<critical_low min="0" max="87.56342"/>
 					<warning_low min="87.56342" max="100.31872"/>
@@ -213,14 +213,14 @@
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</TotalPressureSensor>
-			<GasPressureSensor input="HALO" moduleName="ppCO2_HALO" gasType="CO2">
+			<GasPressureSensor input="Airlock" moduleName="ppCO2_Airlock" gasType="CO2">
 				<alarms>
 					<warning_high min="0.25" max="0.35"/>
 					<critical_high min="0.35" max="100"/>
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</GasPressureSensor>
-			<GasPressureSensor input="HALO" moduleName="ppO2_HALO" gasType="O2">
+			<GasPressureSensor input="Airlock" moduleName="ppO2_Airlock" gasType="O2">
 				<alarms>
 					<critical_low min="0" max="19"/>
 					<warning_low min="19" max="20.665"/>
@@ -229,7 +229,7 @@
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</GasPressureSensor>
-    		<GasConcentrationSensor input="HALO" moduleName="Humidity_HALO" gasType="VAPOR">
+    		<GasConcentrationSensor input="Airlock" moduleName="Humidity_Airlock" gasType="VAPOR">
 				<alarms>
 					<critical_low min="0" max="0.40"/>
 					<warning_low min="0.40" max="0.50"/>
@@ -238,7 +238,7 @@
 				</alarms>
 				<normalStochasticFilter deviation="0.005"/>
 			</GasConcentrationSensor>
-			<TotalPressureSensor input="HALO" moduleName="Total_Cabin_Pressure_HALO">
+			<TotalPressureSensor input="Airlock" moduleName="Total_Cabin_Pressure_Airlock">
 				<alarms>
 					<critical_low min="0" max="87.56342"/>
 					<warning_low min="87.56342" max="100.31872"/>

@@ -20,6 +20,9 @@ const ATTR_PREFIX = "@_";
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: ATTR_PREFIX,
+  // BioSim XSD examples often use the `biosim:` prefix on every tag; strip
+  // the namespace so keys match our unprefixed model (F-MODEL-3 pass-through).
+  removeNSPrefix: true,
   // preserve element ordering by accumulating any element that appears more
   // than once into an array
   isArray: () => true,
@@ -54,16 +57,17 @@ export function parseBiosim(xml: string, sourceName?: string): BiosimDocument {
       if (subsystemKey.startsWith(ATTR_PREFIX)) continue;
       const subsystem = subsystemKey as Subsystem;
       if (!isSubsystem(subsystem)) {
-        for (const node of simBioModules[subsystemKey] as XmlNode[]) {
+        for (const node of childElements(simBioModules[subsystemKey])) {
           unknownRoot.push(xmlToUnknown(subsystemKey, node));
         }
         continue;
       }
-      const items = simBioModules[subsystemKey] as XmlNode[];
+      const items = childElements(simBioModules[subsystemKey]);
       for (const wrapper of items) {
         for (const tag of Object.keys(wrapper)) {
           if (tag.startsWith(ATTR_PREFIX)) continue;
-          const nodes = wrapper[tag] as XmlNode[];
+          if (tag === "#text") continue;
+          const nodes = childElements(wrapper[tag]);
           for (const node of nodes) {
             modules.push(parseModule(tag, node, subsystem));
           }
@@ -79,11 +83,12 @@ export function parseBiosim(xml: string, sourceName?: string): BiosimDocument {
       const subsystem = isSubsystem(subsystemKey)
         ? (subsystemKey as Subsystem)
         : "environment";
-      const items = sensorsRoot[subsystemKey] as XmlNode[];
+      const items = childElements(sensorsRoot[subsystemKey]);
       for (const wrapper of items) {
         for (const tag of Object.keys(wrapper)) {
           if (tag.startsWith(ATTR_PREFIX)) continue;
-          const nodes = wrapper[tag] as XmlNode[];
+          if (tag === "#text") continue;
+          const nodes = childElements(wrapper[tag]);
           for (const node of nodes) {
             sensors.push(parseSensor(tag, node, subsystem));
           }
@@ -102,6 +107,14 @@ export function parseBiosim(xml: string, sourceName?: string): BiosimDocument {
 }
 
 type XmlNode = Record<string, unknown>;
+
+/** Child element lists from fast-xml-parser: must not iterate raw strings (that walks each character). */
+function childElements(v: unknown): XmlNode[] {
+  if (v == null) return [];
+  if (Array.isArray(v)) return v.filter((x) => x != null && typeof x === "object") as XmlNode[];
+  if (typeof v === "object") return [v as XmlNode];
+  return [];
+}
 
 function parseGlobals(node: XmlNode | undefined): Globals {
   if (!node) return {};
@@ -137,8 +150,8 @@ function parseModule(tag: string, node: XmlNode, subsystem: Subsystem): ModuleNo
 
   for (const child of Object.keys(node)) {
     if (child.startsWith(ATTR_PREFIX)) continue;
-    const occurrences = node[child] as XmlNode[];
-    for (const occ of occurrences) {
+    if (child === "#text") continue;
+    for (const occ of childElements(node[child])) {
       const endpointMeta = ENDPOINT_TAGS[child];
       if (endpointMeta) {
         endpoints.push(parseEndpoint(child, occ));
@@ -200,7 +213,7 @@ function parseCrewPerson(node: XmlNode): CrewPerson {
   const schedule: CrewActivity[] = [];
   const scheduleNode = (node.schedule as XmlNode[] | undefined)?.[0];
   if (scheduleNode) {
-    const activities = (scheduleNode.activity as XmlNode[] | undefined) ?? [];
+    const activities = childElements(scheduleNode.activity);
     for (const a of activities) {
       const aa = takeAttrs(a);
       schedule.push({
@@ -226,8 +239,8 @@ function parseSensor(tag: string, node: XmlNode, subsystem: Subsystem): SensorSp
   if (alarmsNode) {
     for (const band of Object.keys(alarmsNode)) {
       if (band.startsWith(ATTR_PREFIX)) continue;
-      const occurrences = alarmsNode[band] as XmlNode[];
-      for (const occ of occurrences) {
+      if (band === "#text") continue;
+      for (const occ of childElements(alarmsNode[band])) {
         const bAttrs = takeAttrs(occ);
         alarms.push({
           kind: band as AlarmBandKind,
@@ -263,12 +276,17 @@ function xmlToUnknown(tag: string, node: XmlNode): UnknownXml {
   for (const k of Object.keys(node)) {
     if (k.startsWith(ATTR_PREFIX)) continue;
     if (k === "#text") continue;
-    const occs = node[k] as XmlNode[];
-    for (const occ of occs) {
+    for (const occ of childElements(node[k])) {
       children.push(xmlToUnknown(k, occ));
     }
   }
-  const text = node["#text"] as string | undefined;
+  const textRaw = node["#text"];
+  const text =
+    typeof textRaw === "string"
+      ? textRaw
+      : Array.isArray(textRaw)
+        ? textRaw.map(String).join("")
+        : undefined;
   return { tag, attrs, children, text };
 }
 
@@ -338,7 +356,16 @@ function isSubsystem(s: string): s is Subsystem {
  * f-strings); those are out of scope to "fix" — we just clip and parse.
  */
 function normalizeXml(xml: string): string {
-  const i = xml.lastIndexOf("</biosim>");
-  if (i === -1) return xml;
-  return xml.slice(0, i + "</biosim>".length);
+  const closers = ["</biosim:biosim>", "</biosim>"];
+  let end = -1;
+  let tagLen = 0;
+  for (const c of closers) {
+    const i = xml.lastIndexOf(c);
+    if (i > end) {
+      end = i;
+      tagLen = c.length;
+    }
+  }
+  if (end === -1) return xml;
+  return xml.slice(0, end + tagLen);
 }

@@ -5,13 +5,16 @@
 # Local BioSim clone kept here for offline reference; not part of this repo.
 biosim-as-reference/
 
-# Node / web tooling (anticipated; harmless until the SPA exists)
+# Node / web tooling
 node_modules/
 dist/
 build/
 .vite/
 .cache/
 coverage/
+app/dist/
+app/node_modules/
+*.tsbuildinfo
 
 # Env & editor
 .env

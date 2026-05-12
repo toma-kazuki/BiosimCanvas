@@ -1,0 +1,312 @@
+:root {
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-2: #1f2330;
+  --surface-3: #272c3c;
+  --border: #2a2f3d;
+  --text: #e6e8ee;
+  --text-muted: #9aa1b1;
+  --accent: #5da9ff;
+  --ok: #56c596;
+  --warn: #e6c054;
+  --err: #e3635a;
+
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+    "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+button:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #0c1220;
+}
+
+button.primary:hover {
+  background: #76b6ff;
+}
+
+.app {
+  display: grid;
+  grid-template-rows: 48px 1fr 28px;
+  grid-template-columns: 240px 1fr 320px;
+  grid-template-areas:
+    "appbar  appbar  appbar"
+    "palette canvas  side"
+    "status  status  status";
+  height: 100vh;
+  width: 100vw;
+}
+
+.appbar {
+  grid-area: appbar;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.appbar .brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.appbar .filename {
+  color: var(--text-muted);
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+  font-size: 12px;
+}
+
+.appbar .spacer {
+  flex: 1;
+}
+
+.palette,
+.side {
+  background: var(--surface);
+  overflow: auto;
+}
+
+.palette {
+  grid-area: palette;
+  border-right: 1px solid var(--border);
+  padding: 12px 12px 24px;
+}
+
+.palette h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 12px 0 6px;
+}
+
+.palette .placeholder {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.canvas {
+  grid-area: canvas;
+  position: relative;
+  background: var(--bg);
+}
+
+.side {
+  grid-area: side;
+  border-left: 1px solid var(--border);
+  padding: 14px;
+}
+
+.side h2 {
+  font-size: 14px;
+  margin: 0 0 4px;
+}
+
+.side .kind {
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.side .section {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.side .section h3 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin: 0 0 6px;
+}
+
+.side .row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  align-items: baseline;
+}
+
+.side .row label {
+  color: var(--text-muted);
+}
+
+.side .row .v {
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+  word-break: break-word;
+}
+
+.side .empty {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.statusbar {
+  grid-area: status;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(23, 26, 33, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  max-width: 480px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.legend .item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend .swatch {
+  display: inline-block;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* Module nodes */
+.mod-node {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  width: 168px;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.mod-node.selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.mod-node .kind-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.mod-node .glyph {
+  display: inline-flex;
+  width: 22px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 9px;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
+}
+
+.mod-node .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.mod-node .meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+}
+
+.mod-node .malf-badge {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 10px;
+  color: #0c1220;
+  background: var(--warn);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.react-flow__handle {
+  width: 6px;
+  height: 6px;
+  background: var(--text-muted);
+  border: none;
+}
+
+/* File input button shim */
+.file-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.file-button input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}

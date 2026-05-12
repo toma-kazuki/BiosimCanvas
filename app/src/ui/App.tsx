@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useCanvasStore } from "../state/store";
 import { parseBiosim } from "../io/parseBiosim";
+import { emitBiosim } from "../io/emitBiosim";
+import { defaultBiosimFilename, saveBiosimFile } from "../io/saveBiosimFile";
 import { Schematic } from "./schematic/Schematic";
 import { SidePanel } from "./side-panel/SidePanel";
 import { Palette } from "./common/Palette";
 import { ViewSwitcher } from "./common/ViewSwitcher";
 import { Spatial } from "./spatial/Spatial";
 import { Timeline } from "./timeline/Timeline";
+import { Review } from "./review/Review";
 import { XmlView } from "./xml-view/XmlView";
 
 interface BundledTemplate {
@@ -39,6 +42,8 @@ export function App() {
   const doc = useCanvasStore((s) => s.doc);
   const setDoc = useCanvasStore((s) => s.setDoc);
   const view = useCanvasStore((s) => s.view);
+  const biosimFileHandle = useCanvasStore((s) => s.biosimFileHandle);
+  const applyBiosimSave = useCanvasStore((s) => s.applyBiosimSave);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   const loadXml = useCallback(
@@ -85,6 +90,27 @@ export function App() {
     [loadXml],
   );
 
+  const saveBiosim = useCallback(
+    async (saveAs: boolean) => {
+      if (!doc) return;
+      const xml = emitBiosim(doc);
+      const suggested = defaultBiosimFilename(doc.sourceName);
+      const result = await saveBiosimFile({
+        xml,
+        suggestedName: suggested,
+        existingHandle: biosimFileHandle,
+        saveAs,
+      });
+      if (result.kind === "cancelled") return;
+      if (result.kind === "written") {
+        applyBiosimSave(result.fileName, result.handle, "fs");
+        return;
+      }
+      applyBiosimSave(result.fileName, null, "download");
+    },
+    [doc, biosimFileHandle, applyBiosimSave],
+  );
+
   return (
     <div className="app">
       <div className="appbar">
@@ -121,6 +147,20 @@ export function App() {
             }}
           />
         </label>
+        <button
+          type="button"
+          title="Write the current model to disk (reuses last path when possible)"
+          onClick={() => saveBiosim(false)}
+        >
+          Save .biosim
+        </button>
+        <button
+          type="button"
+          title="Always choose a new file location"
+          onClick={() => saveBiosim(true)}
+        >
+          Save as…
+        </button>
       </div>
 
       <Palette />
@@ -134,6 +174,8 @@ export function App() {
             <Spatial />
           ) : view === "timeline" ? (
             <Timeline />
+          ) : view === "review" ? (
+            <Review />
           ) : (
             <XmlView />
           )
@@ -151,7 +193,7 @@ export function App() {
             : "Loading template.biosim…"}
         </span>
         <span style={{ flex: 1 }} />
-        <span>BioSimCanvas v0.x · schematic-only preview</span>
+        <span>BioSimCanvas v0.x · local-first authoring</span>
       </div>
     </div>
   );

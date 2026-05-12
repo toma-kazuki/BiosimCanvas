@@ -4,6 +4,7 @@ const VIEWS: { id: CanvasView; label: string }[] = [
   { id: "schematic", label: "Schematic" },
   { id: "spatial", label: "Spatial" },
   { id: "timeline", label: "Timeline" },
+  { id: "review", label: "Review" },
   { id: "xml", label: "XML" },
 ];
 

@@ -1331,6 +1331,135 @@ select.field:focus {
   border: none;
 }
 
+/* --- Review (pre-export structural checklist) ------------------------ */
+
+.review-view {
+  height: 100%;
+  overflow: auto;
+  padding: 16px 20px 32px;
+  background: var(--bg);
+  box-sizing: border-box;
+}
+
+.review-header {
+  max-width: 720px;
+  margin-bottom: 20px;
+}
+
+.review-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.review-lead {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.review-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.review-stat {
+  color: var(--text-muted);
+  font-family: ui-monospace, "JetBrains Mono", "Fira Mono", monospace;
+}
+
+.review-stat.has-warn {
+  color: var(--warn);
+}
+
+.review-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  max-width: 520px;
+  line-height: 1.5;
+}
+
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.review-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 12px;
+}
+
+.review-item.review-warn {
+  border-left: 3px solid var(--warn);
+}
+
+.review-item.review-info {
+  border-left: 3px solid var(--accent);
+  opacity: 0.95;
+}
+
+.review-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.review-severity {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.review-code {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.review-message {
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.review-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.review-link {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  color: var(--accent);
+}
+
+.review-link:hover {
+  border-color: var(--accent);
+  background: var(--surface-3);
+}
+
 /* File input button shim */
 .file-button {
   position: relative;

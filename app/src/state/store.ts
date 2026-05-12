@@ -29,7 +29,7 @@ import {
   setSpatialLayout,
 } from "../domain/mutations";
 
-export type CanvasView = "schematic" | "spatial" | "timeline" | "xml";
+export type CanvasView = "schematic" | "spatial" | "timeline" | "xml" | "review";
 
 interface CanvasState {
   doc: BiosimDocument | null;
@@ -38,11 +38,23 @@ interface CanvasState {
   view: CanvasView;
   /** Surface short-lived banner text (rename collisions, etc.). */
   toast: string | null;
+  /**
+   * Last successful File System Access save handle for the main `.biosim`
+   * file — cleared when a new document is loaded. Not available after
+   * download fallback.
+   */
+  biosimFileHandle: FileSystemFileHandle | null;
 
   setDoc: (doc: BiosimDocument | null) => void;
   selectModule: (name: string | null) => void;
   setView: (v: CanvasView) => void;
   setToast: (msg: string | null) => void;
+  /** After Save to disk — updates `sourceName` and optional write handle. */
+  applyBiosimSave: (
+    fileName: string,
+    handle: FileSystemFileHandle | null,
+    mode: "fs" | "download",
+  ) => void;
 
   patchGlobals: (patch: Partial<Globals>) => void;
   patchModuleAttr: (moduleName: string, key: string, value: string | undefined) => void;
@@ -84,8 +96,24 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   selectedModuleName: null,
   view: "schematic",
   toast: null,
+  biosimFileHandle: null,
 
-  setDoc: (doc) => set({ doc, selectedModuleName: null, toast: null }),
+  setDoc: (doc) => set({ doc, selectedModuleName: null, toast: null, biosimFileHandle: null }),
+
+  applyBiosimSave: (fileName, handle, mode) =>
+    set((state) => {
+      const d = state.doc;
+      if (!d) return state;
+      const toast =
+        mode === "download"
+          ? `Downloaded ${fileName} — open this file to edit; use Save in Chromium to attach a writable path.`
+          : `Saved ${fileName}`;
+      return {
+        doc: { ...d, sourceName: fileName },
+        biosimFileHandle: handle,
+        toast,
+      };
+    }),
   selectModule: (name) => set({ selectedModuleName: name }),
   setView: (v) => set({ view: v }),
   setToast: (msg) => set({ toast: msg }),

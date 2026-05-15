@@ -1866,3 +1866,199 @@ select.field:focus {
 .pt-malf .pt-label {
   color: var(--warn);
 }
+
+/* ── Module Encyclopedia panel (F-KNOW-2) ───────────────────────────── */
+
+.encyclopedia {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.enc-search-row {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.enc-search {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.enc-search:focus { outline: 1px solid var(--accent); }
+
+.enc-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.enc-group { margin-bottom: 4px; }
+
+.enc-sub-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 6px 10px 2px;
+}
+
+.enc-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: var(--text);
+  font: inherit;
+}
+
+.enc-item:hover { background: var(--surface-2); }
+
+.enc-item-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.enc-item-summary {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enc-empty {
+  padding: 16px 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Entry view */
+.enc-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  overflow-y: auto;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.enc-back {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.enc-back:hover { text-decoration: underline; }
+
+.enc-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enc-entry-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.enc-entry-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+}
+
+.enc-entry-summary {
+  font-size: 13px;
+  margin: 0;
+  color: var(--text);
+}
+
+.enc-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-top: 10px;
+}
+
+.enc-hierarchy {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.enc-hier-ancestor { color: var(--text-muted); }
+.enc-hier-self { color: var(--accent); font-weight: 700; }
+.enc-hier-sep { color: var(--border); }
+
+.enc-hierarchy-note {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+  font-style: italic;
+}
+
+.enc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.enc-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.enc-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+
+.enc-table tr:last-child td { border-bottom: none; }
+
+.enc-mono { font-family: "JetBrains Mono", "Fira Mono", monospace; font-size: 10px; }
+.enc-consumer { color: #7fc8f7; }
+.enc-producer { color: #9fe07f; }
+.enc-yes { color: var(--ok); }
+.enc-no  { color: var(--text-muted); font-style: italic; }
+
+.enc-malf-low { color: var(--ok); }
+.enc-malf-med { color: var(--warn); }
+.enc-malf-sev { color: var(--err); }
+
+.enc-physics-note {
+  background: var(--surface-2);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}

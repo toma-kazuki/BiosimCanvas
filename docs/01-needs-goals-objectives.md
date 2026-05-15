@@ -4,6 +4,7 @@
 |----------|------|--------|---------|-----------|
 | 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
 | 0.2 (draft) | 2026-05-12 | Resolved license, deadline, browser-targets opens. To be reviewed at the next lab meeting (≈ T+8h). | Project lead | TBD |
+| 0.3 (draft) | 2026-05-15 | Cycle 2 — post-lab-meeting feedback. Added G-6/G-7 and O-6/O-7 for module transparency and LLM authoring assistant. Updated non-goals and success criteria. | Project lead | TBD |
 
 ## 1. Problem Statement
 
@@ -69,6 +70,23 @@ High-level goals, in priority order.
   published BioSim XSDs and conventions; produce output that
   TRACLabs and other collaborators can consume in their own
   workflows.
+
+- **G-6. Make the BioSim module model transparent.** *(new in v0.3)*
+  Users — including lab mates who are not BioSim experts — must be
+  able to understand, from within BioSimCanvas, what each module
+  class does physically: what resources it consumes and produces,
+  what its configurable parameters mean, what happens to it under a
+  malfunction, and how it relates to other module classes. BioSim's
+  module library is a fixed set of Java classes; the UI must reflect
+  that constraint clearly rather than imply extensibility that does
+  not exist.
+
+- **G-7. Provide an LLM authoring assistant.** *(new in v0.3)*
+  Users should be able to converse with a language model that can
+  both answer questions about BioSim configurations and — when the
+  user asks it to — generate or modify the current configuration
+  directly. The LLM operates on the canonical XML representation and
+  the canvas reflects its output immediately.
 
 ## 4. Objectives
 
@@ -143,6 +161,56 @@ Failures are presented as **soft warnings the user can override**
 (consistent with the simpler-implementation preference). The user
 is told exactly what to fix and where.
 
+### O-6. Module transparency (supports G-6) *(new in v0.3)*
+
+For every module type in the v1 catalog, BioSimCanvas surfaces, in
+the UI without requiring the user to read source code or XSD files:
+
+- the module's **functional summary** (one sentence: what it does
+  physically),
+- its **resource inputs and outputs** (port name, resource type,
+  direction),
+- its **configurable attributes** (name, type, unit, and what
+  changing it affects in simulation),
+- its **malfunction behavior** (what LOW / MEDIUM / SEVERE intensity
+  does to this specific module type at runtime).
+
+Information is derived from a curated knowledge base built by
+auditing the BioSim Java source code (commit `edb93e81`). It is
+accessible via hover tooltips on palette items and canvas nodes,
+and as a browsable "Module Encyclopedia" panel.
+
+**Acceptance check:** a lab mate with no prior BioSim knowledge can,
+after a 5-minute tool walkthrough, correctly answer: "What resource
+does OGS consume?" and "What happens to WaterRS output when power is
+halved?" without opening any external document.
+
+### O-7. LLM authoring assistant (supports G-7) *(new in v0.3)*
+
+BioSimCanvas offers a toggleable chat sidebar through which the user
+can interact with an LLM agent. The agent:
+
+1. **Always has access to the current configuration.** Before each
+   user message is sent to the LLM, the system serializes the
+   current in-memory model to XML and includes it as context.
+2. **Can generate or rewrite the configuration.** When the agent
+   decides a configuration change is warranted, it outputs valid
+   `.biosim` XML. BioSimCanvas parses this output and updates the
+   canvas model immediately (the same round-trip as the XML expert
+   view).
+3. **Can answer without changing the configuration.** If no config
+   change is needed, the agent responds in chat only.
+
+The v2 prototype targets: a user can describe a habitat mission in
+plain language and receive a plausible starter configuration on the
+canvas within one exchange.
+
+**Acceptance check (v2 prototype):** starting from an empty
+template, ask "Create a minimal two-crew lunar habitat with closed
+air and water loops." The resulting canvas shows recognizable
+BioSim module topology and the exported `.biosim` parses without
+errors.
+
 ### O-5. Bounded simplicity (supports G-4)
 
 The v1 implementation has:
@@ -174,13 +242,21 @@ goals for v1 and are deferred or out of scope:
 - **DEFERRED-TO-vNEXT:** Stochastic / noise filter authoring UI
   (`normalStochasticFilter` etc. are passed through but not
   graphically edited).
+- **DEFERRED-TO-vNEXT:** Custom BioSim module creation. BioSim
+  modules are fixed Java classes; creating a new module type
+  requires writing Java source and modifying BioSim's
+  initializer. This is out of scope for BioSimCanvas, which
+  configures the existing module library only.
+- **DEFERRED-TO-vNEXT:** LLM-driven visual diff / annotation
+  (highlighting proposed canvas changes before applying them).
+  The v2 prototype applies LLM-generated XML directly.
 - **OUT OF SCOPE:** Authoring BioSim source code or schemas.
 - **OUT OF SCOPE:** Replacing BioSim's own visualization
   integrations (Open MCT, etc.) for live runs.
 
 ## 6. Success Criteria (rolled up)
 
-BioSimCanvas v1 is considered successful when **all** of the
+BioSimCanvas v1 (first cycle) is considered successful when **all** of the
 following are true:
 
 1. **(O-1)** The existing `template.biosim` round-trips through
@@ -197,6 +273,15 @@ following are true:
    labeled warning.
 5. **(G-4)** The repository remains a single static SPA with no
    server-side runtime requirement.
+
+**Additional criteria for cycle 2 (v0.3 targets):**
+
+6. **(O-6)** A non-BioSim lab mate can answer basic module physics
+   questions (e.g., OGS inputs, WaterRS power-mode behavior) using
+   only the in-app module encyclopedia and tooltips.
+7. **(O-7)** Starting from an empty template, a user can describe a
+   habitat in plain language and the LLM agent produces a parseable,
+   canvas-visible `.biosim` configuration in one exchange.
 
 ## 7. Open Questions (NGO-level)
 
@@ -220,10 +305,12 @@ Resolved in v0.2:
 
 Still open:
 
-- **OPEN:** Any data-sensitivity concerns (ITAR/EAR) on the
-  habitat models we will edit in BioSimCanvas? BioSim itself is
-  public on GitHub under GPL-3.0, but scenarios authored for
-  specific NASA programs may be more sensitive.
+- **RESOLVED (v0.3):** ITAR/EAR — no restriction for current
+  research content; habitat models are unclassified. Revisit
+  if program scope changes.
+- **OPEN:** LLM interaction model iteration — exact prompt design,
+  context window strategy, and system prompt content for the
+  BioSim-aware agent are to be refined through use.
 
 ## 8. Traceability hooks
 

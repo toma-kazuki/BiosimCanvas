@@ -4,6 +4,7 @@
 |----------|------|--------|---------|-----------|
 | 0.1 (draft) | 2026-05-12 | Initial sketch | Project lead | TBD |
 | 0.2 (draft) | 2026-05-12 | Layout sidecar choice and BioSim pin landed; framework and XSD-validation decisions remain to be picked up alongside the first build. | Project lead | TBD |
+| 0.3 (draft) | 2026-05-15 | Cycle 2 — resolved framework/XSD/repo-layout opens (all confirmed from cycle 1 build); added §2.9 LLM integration, §4.6 LLM round-trip, §4.7 knowledge base; updated architectural diagram; updated risks table. | Project lead | TBD |
 
 This document records architectural decisions and the rationale for
 each. It is intentionally **terse** at this stage so the
@@ -13,34 +14,48 @@ document will grow into the canonical architecture reference.
 ## 1. Architectural shape
 
 ```
-              ┌────────────────────────────────────────────┐
-              │              Browser (SPA)                 │
-              │                                            │
-   user ◀─▶  ┌┴───────────────┐   ┌──────────────────────┐ │
-              │  UI layer       │   │  Domain layer       │ │
-              │  (views +       │   │  (canonical model,  │ │
-              │   palette +     │◀─▶│   schema, undo,     │ │
-              │   side panel +  │   │   validators)       │ │
-              │   timeline)     │   └──────────────────────┘ │
-              │                 │            │              │
-              │                 │            ▼              │
-              │                 │   ┌──────────────────────┐ │
-              │                 │   │  Serialization layer │ │
-              │                 │   │  (XML parser /       │ │
-              │                 │   │   emitter, XSD       │ │
-              │                 │   │   validation)        │ │
-              │                 │   └──────────────────────┘ │
-              │                 │            │              │
-              │                 │            ▼              │
-              │                 │   ┌──────────────────────┐ │
-              │                 │   │  Storage adapter     │ │
-              │                 │   │  (File System Access │ │
-              │                 │   │   API + fallback)    │ │
-              │                 │   └──────────────────────┘ │
-              └─────────────────┴────────────────────────────┘
+              ┌─────────────────────────────────────────────────┐
+              │                 Browser (SPA)                   │
+              │                                                 │
+   user ◀─▶  ┌┴──────────────────┐   ┌──────────────────────┐  │
+              │  UI layer          │   │  Domain layer        │  │
+              │  (views +          │   │  (canonical model,   │  │
+              │   palette +        │◀─▶│   schema, undo,      │  │
+              │   side panel +     │   │   validators)        │  │
+              │   encyclopedia +   │   └──────────────────────┘  │
+              │   LLM chat)        │            │               │
+              │                    │            ▼               │
+              │                    │   ┌──────────────────────┐  │
+              │                    │   │  Serialization layer │  │
+              │                    │   │  (XML parser /       │  │
+              │                    │   │   emitter, structural│  │
+              │                    │   │   validation)        │  │
+              │                    │   └──────────────────────┘  │
+              │                    │            │               │
+              │                    │            ▼               │
+              │                    │   ┌──────────────────────┐  │
+              │                    │   │  Storage adapter     │  │
+              │                    │   │  (File System Access │  │
+              │                    │   │   API + fallback)    │  │
+              │                    │   └──────────────────────┘  │
+              │                    │                            │
+              │    LLM chat ───────┼──► LLM adapter            │  │
+              │    sidebar         │   (serialize model →      │  │
+              │                    │    Anthropic API →        │  │
+              │                    │    parse XML response →   │  │
+              │                    │    update domain model)   │  │
+              └────────────────────┴────────────────────────────┘
+                                              │
+                                              ▼ (one outbound call
+                                           per user message)
+                                    ┌──────────────────┐
+                                    │  OpenAI API      │
+                                    │  (gpt-4o)        │
+                                    └──────────────────┘
 
-  • No backend, no DB. Static SPA. Templates and XSDs are bundled.
-  • File I/O is purely client-side, on the user's filesystem.
+  • One outbound network call per LLM turn; all other I/O is local.
+  • Static SPA. Templates, XSDs, and knowledge base are bundled.
+  • API key loaded from .env (never committed).
 ```
 
 ## 2. Recommended technology choices (proposed, refinable)
@@ -119,6 +134,35 @@ explicitly approves them. The simpler-is-better preference applies.
 - Tests: Vitest + React Testing Library.
 - E2E (later): Playwright for SCN-1..SCN-4 smoke tests.
 
+### 2.9 LLM integration — **OpenAI API** *(new in v0.3, updated v0.3.1)*
+
+- **Provider**: OpenAI (`gpt-4o` or later).
+- **SDK**: `openai` (official OpenAI TypeScript SDK), called
+  directly from the browser. The API key is loaded from the
+  `VITE_OPENAI_API_KEY` environment variable at build time
+  (Vite exposes `VITE_*` vars to the browser bundle).
+- **Request construction**: on each user message, the UI layer
+  serializes the current domain model to XML (reusing the same
+  emitter as F-EXPORT-1) and prepends it to the user message as
+  a `<configuration>` block. A fixed system prompt provides
+  BioSim domain context and instructs the agent on response
+  format. Uses the Chat Completions API
+  (`/v1/chat/completions`) with a `system` message and a
+  `user` message per turn.
+- **Response handling**: the LLM adapter scans the response text
+  for a root BioSim XML element. If found, it is passed to the
+  existing XML parser; on success the domain model is replaced
+  and all views re-render. If not found, the response is shown
+  as chat text only.
+- **Error handling**: API errors (invalid key, rate limit, network
+  timeout) are caught and displayed as error messages in the chat
+  panel; they do not throw or crash the app.
+- **Security note**: `VITE_OPENAI_API_KEY` is embedded in the
+  client bundle in production. This is acceptable for a local
+  dev/research tool where the user supplies their own key. The
+  `.env` file is `.gitignore`d; the production build is not
+  intended for public hosting.
+
 ## 3. Repository layout (current)
 
 GitHub repository name: **`BiosimCanvas`**. Local clones commonly use a
@@ -187,6 +231,40 @@ extension element inside the `.biosim`; the sidecar keeps the
 canonical file clean at the cost of two files traveling
 together.)
 
+### 4.6 LLM round-trip *(new in v0.3)*
+
+The LLM authoring assistant shares the serialization layer with
+the rest of the app:
+
+1. **Outbound**: `emitBiosim(currentModel)` → XML string →
+   prepended to user message → Anthropic API.
+2. **Inbound**: API response scanned for root BioSim XML →
+   `parseBiosim(xml)` → new `BiosimDocument` → replaces
+   Zustand store state → all views re-render → undo stack
+   captures the change (so Ctrl+Z undoes the LLM update).
+
+This reuse is intentional: the LLM is an editor, not a special
+pathway. Its output passes through the same validation as any
+user edit. If the LLM produces structurally invalid XML, the
+parser's error handling surfaces the problem in the chat panel
+and leaves the existing model intact.
+
+### 4.7 Module knowledge base *(new in v0.3)*
+
+The module encyclopedia (F-KNOW-*) is backed by a single
+TypeScript constant file (`src/domain/moduleKnowledge.ts`).
+Each entry is a plain object keyed by module type name,
+containing the curated content (functional summary, ports,
+attributes, malfunction behavior, hidden physics note).
+
+Content is derived once from the BioSim Java source (commit
+`edb93e81`) and does not require any build-time code
+generation or network access. The same data is referenced by:
+- the Encyclopedia panel component,
+- the hover tooltip renderer for canvas nodes and palette items,
+- (optionally) the LLM system prompt, to ground the agent's
+  knowledge about specific BioSim module behavior.
+
 ### 4.5 No live BioSim integration in v1
 
 The REST and WebSocket interfaces of BioSim exist (see the
@@ -198,11 +276,15 @@ simplicity.
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
-| XSD validation in the browser too slow / too large | medium | medium | Validate in a Web Worker; fall back to structural validation in TS if WASM XSD is unwieldy. |
-| BioSim schema evolution diverges from bundled XSD | medium | low–medium | Pin schema version (NF-8); add a smoke test that re-validates all bundled templates on every build. |
+| XSD validation in the browser too slow / too large | medium | medium | Structural validation in TS (implemented). WASM XSD deferred. |
+| BioSim schema evolution diverges from bundled XSD | medium | low–medium | Pin schema version (NF-8); smoke test re-validates all bundled templates on every build. |
 | File System Access API gaps on Firefox / Safari | high | low | Document the fallback; show a one-time hint on those browsers. |
 | Scope creep into live-telemetry visualization | medium | high | Hold the line via the non-goals in NGO §5; revisit only in v-next. |
-| Layout coordinates in `.biosim` break TRACLabs' tooling | low | medium | Use clearly namespaced extension elements; provide a flag to export without them. |
+| Layout coordinates in `.biosim` break TRACLabs' tooling | low | medium | Sidecar JSON keeps `.biosim` clean (resolved v0.2). |
+| LLM outputs malformed or semantically invalid XML | medium | low | Parser error handling leaves current model intact; error shown in chat. Structural validation runs on LLM output same as on user edits. |
+| LLM API key exposed in browser bundle | medium | low | Acceptable for local research tool; user supplies own key; `.env` is `.gitignore`d; no public hosting. |
+| LLM context window overflow for large configs | low–medium | medium | minihab.biosim is ~470 lines; well within Claude's context window. Mitigation needed only if configs grow to 1000+ modules; defer. |
+| LLM generates plausible-but-wrong physics | medium | medium | Module encyclopedia tooltips let users spot-check generated configs; structural validation catches reference errors. |
 
 ## 6. Open Items (Architecture-level)
 
@@ -214,14 +296,24 @@ Resolved in v0.2:
   (`v2.0.0-35-gedb93e81`), matching the local
   `biosim-as-reference/` checkout.
 
+Resolved in v0.3:
+
+- **RESOLVED (v0.3):** Framework — React + TypeScript + Vite.
+  Confirmed by cycle 1 build.
+- **RESOLVED (v0.3):** XSD validation strategy — structural
+  validation in TypeScript (implemented in cycle 1). WASM XSD
+  validation deferred; structural checks are sufficient for v1/v2.
+- **RESOLVED (v0.3):** Repo layout — flat (`app/` at repo root).
+  Confirmed by cycle 1 build. No second package has emerged.
+- **RESOLVED (v0.3.1):** LLM provider — OpenAI API (`gpt-4o`).
+  API key via `VITE_OPENAI_API_KEY` in `.env`.
+
 Still open:
 
-- **OPEN:** Confirm framework choice (React vs Svelte vs Vue).
-  Default proposal stands: React + TypeScript + Vite.
-- **OPEN:** Confirm XSD validation strategy (WASM XSD validator
-  vs structural validation in TypeScript). Default proposal:
-  structural validation first (cheaper); add WASM XSD if and
-  when warranted.
-- **OPEN:** Decide flat repo vs monorepo layout for the SPA.
-  Default proposal: flat for v1; revisit when a second package
-  emerges.
+- **OPEN:** LLM system prompt content — the exact BioSim domain
+  context and output-format instructions to include; to be
+  iterated through use.
+- **OPEN:** Whether to include `moduleKnowledge.ts` content (or
+  a condensed version) in the LLM system prompt to ground the
+  agent's module-level knowledge, vs. relying on Claude's
+  training data about BioSim.

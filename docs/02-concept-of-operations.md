@@ -4,6 +4,7 @@
 |----------|------|--------|---------|-----------|
 | 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
 | 0.2 (draft) | 2026-05-12 | SCN-3, SCN-2, SCN-4 marked as v1 acceptance journeys. To be reviewed at the next lab meeting (≈ T+8h). | Project lead | TBD |
+| 0.3 (draft) | 2026-05-15 | Cycle 2 — added SCN-6 (module transparency) and SCN-7 (LLM authoring assistant). Updated §4 Operational Modes to include LLM chat sidebar and module encyclopedia. Updated §5 lifecycle diagram. | Project lead | TBD |
 
 This document describes **how BioSimCanvas is used** — who does what,
 when, with what — so the requirements that follow have a concrete
@@ -150,6 +151,57 @@ the project lead emulating that role.
 **Success**: scenario authoring is a timeline activity, not a
 text-editing activity.
 
+### SCN-6 — "Understand a module before wiring it" *(supports O-6, G-6)* — **cycle 2 acceptance gate** *(new in v0.3)*
+
+This scenario captures the transparency use case that emerged from
+the first lab meeting.
+
+1. The Driver opens `template.biosim` and is in the **schematic
+   view**.
+2. A Reviewer asks: "What exactly does the OGS do, and what
+   happens to it when power drops?"
+3. The Driver hovers over the OGS node on the canvas. A **tooltip**
+   appears showing a one-sentence functional summary ("Electrolyzes
+   potable water into O₂ and H₂; requires power"), its resource
+   ports (powerConsumer, potableWaterConsumer → O₂Producer,
+   H₂Producer), and a note on malfunction behavior
+   ("SEVERE_MALF disables output entirely").
+4. The Reviewer asks to see the full module encyclopedia entry. The
+   Driver opens the **Module Encyclopedia** panel. The OGS entry
+   shows: class hierarchy (SimBioModule → OGS), all configurable
+   attributes with units, stoichiometric note (2H₂O → 2H₂ + O₂),
+   and malfunction intensity effects.
+5. The Reviewer asks about WaterRS. The Driver navigates to it in
+   the encyclopedia. The entry explains the four power-based
+   operational modes (FULL / PARTIAL / GREY_WATER_ONLY / OFF) and
+   how `desiredFlowRates` affects mode selection each tick.
+
+**Success**: the Reviewer's question is answered without leaving the
+tool or consulting any external document.
+
+### SCN-7 — "Ask the LLM to generate a starter configuration" *(supports O-7, G-7)* — **cycle 2 acceptance gate** *(new in v0.3)*
+
+1. The Driver opens BioSimCanvas to an empty template.
+2. They toggle open the **LLM chat sidebar** (keyboard shortcut or
+   toolbar button). The current canvas state (serialized as XML) is
+   automatically included as context — the sidebar shows "Context:
+   current config (empty template)".
+3. The Driver types: "Create a minimal two-crew lunar habitat with
+   closed air and water loops."
+4. The LLM agent responds in the chat window with a brief
+   explanation of its design decisions, and simultaneously outputs
+   a new `.biosim` XML.
+5. BioSimCanvas parses the XML and updates the canvas. The
+   schematic view now shows the generated modules and connections.
+6. The Driver inspects the result, asks a follow-up: "Add a
+   malfunction on the OGS at tick 3000." The agent updates the
+   XML accordingly; the timeline view reflects the new malfunction.
+7. The Driver exports the final `.biosim`; it parses without errors.
+
+**Success**: a plausible starting habitat is on the canvas after one
+exchange; the configuration is editable through normal canvas
+interactions afterward.
+
 ### SCN-5 — "Share a `.biosim` with TRACLabs" *(supports G-5)* — supporting, not a v1 gate
 
 1. The Driver finishes a scenario in BioSimCanvas and exports a
@@ -167,14 +219,15 @@ TRACLabs, from a hand-authored `.biosim`.
 
 ## 4. Operational Modes & Views
 
-BioSimCanvas v1 organizes the workspace into the following
-coordinated views. The driver switches among them via tabs / a
-view switcher.
+BioSimCanvas v2 organizes the workspace into the following
+coordinated views and panels. The driver switches main views via
+tabs; the side panels are independently toggleable.
 
 1. **Schematic view (primary).** Node-link graph of modules and
    resource flows. Subsystem grouping by color and lane
    (environment / air / water / power / food / waste / crew /
-   framework). Producer/consumer ports typed by resource.
+   framework). Producer/consumer ports typed by resource. Module
+   nodes and palette items now show **physics tooltips** on hover.
 2. **Spatial view.** Informational only. The driver places
    module icons on a separate 2D canvas to communicate intent
    ("this is IHab, this is HALO, these are connected"). Does
@@ -182,13 +235,30 @@ view switcher.
 3. **Timeline view.** Horizontal time axis (ticks). One lane
    per crew member showing their 24-hour activity schedule.
    One lane per module that has a scheduled malfunction.
-4. **Properties side panel.** Always-visible inspector for the
+4. **Properties side panel (right).** Inspector for the
    currently selected node, edge, crew member, or malfunction.
-5. **XML expert view.** Read-only by default; pretty-printed
+   Toggleable; shares the right panel slot with the Module
+   Encyclopedia (see below).
+5. **Module Encyclopedia panel (right).** *(new in v0.3)*
+   Browsable reference for all v1 module types. Each entry
+   shows: functional summary, class hierarchy, resource ports,
+   configurable attributes with units, and malfunction behavior.
+   Toggled in place of the Properties panel; accessible from
+   the toolbar or by clicking "Learn more" in a tooltip.
+6. **LLM chat sidebar (right).** *(new in v0.3)* Toggleable
+   chat panel for the LLM authoring assistant. The three right-
+   panel modes (Properties / Encyclopedia / LLM chat) share a
+   single column and are switched via a tab strip at the top of
+   the right panel. The current configuration (serialized XML)
+   is automatically included as agent context on each send.
+7. **Module palette (left).** Categorized drag source for new
+   modules. Toggleable; collapsible groups. Each palette item
+   shows a one-line physics summary tooltip on hover.
+8. **XML expert view.** Read-only by default; pretty-printed
    serialization of the current model. Toggleable to read-write
    for power users — but the canonical model lives in the GUI
    state, and XML edits round-trip through a re-parse.
-6. **Export review panel.** Shown on export. Lists schema
+9. **Export review panel.** Shown on export. Lists schema
    warnings, broken references, name collisions, and crew
    schedule issues. The user may override and proceed.
 
@@ -202,12 +272,13 @@ view switcher.
         └──────────────┬───────────────┘
                        │
                        ▼
-        ┌──────────────────────────────┐
-        │  Edit (schematic /           │
-        │  spatial / timeline /        │
-        │  side panel / XML)           │
-        └──────────────┬───────────────┘
-                       │
+        ┌──────────────────────────────┐    ┌─────────────────────┐
+        │  Edit (schematic /           │◀──▶│  LLM chat sidebar   │
+        │  spatial / timeline /        │    │  (serialize model → │
+        │  side panel / XML)           │    │   send to LLM →     │
+        └──────────────┬───────────────┘    │   parse response →  │
+                       │                    │   update canvas)    │
+                       │                    └─────────────────────┘
                        ▼
         ┌──────────────────────────────┐
         │  Review (schema-fidelity     │
@@ -221,7 +292,10 @@ view switcher.
         └──────────────────────────────┘
 ```
 
-There is **no server state**. A session ends when the tab is
+There is **no server state** for the canvas model. The LLM
+agent call is the one network request in v2; the API key is
+loaded from a local `.env` file and never transmitted except to
+the configured LLM provider. A session ends when the tab is
 closed; reopening requires re-loading from the filesystem.
 
 ## 6. Open Questions (ConOps-level)
@@ -231,19 +305,26 @@ Resolved in v0.2:
 - **RESOLVED (v0.2):** v1 acceptance journeys — **SCN-3, SCN-2,
   SCN-4**. SCN-1 and SCN-5 are supporting.
 
+Resolved in v0.3:
+
+- **RESOLVED (v0.3):** Undo/redo implemented as per-edit
+  (80-step limit). Granularity confirmed acceptable.
+- **RESOLVED (v0.3):** Session autosave to localStorage — yes,
+  behind a preference toggle. Implemented in cycle 1.
+- **RESOLVED (v0.3):** Templates bundled — yes, SPA ships with
+  empty, IHab+HALO, lunar minihab, and anomaly demo templates.
+- **RESOLVED (v0.3):** Cycle 2 acceptance journeys — **SCN-6**
+  (module transparency) and **SCN-7** (LLM authoring assistant).
+
 Still open:
 
-- **OPEN:** Do we need an "undo / redo" stack on the canvas (almost
-  certainly yes, but at what granularity — per-edit, per-node,
-  per-tab)? Affects requirements R-EDIT-*.
-- **OPEN:** Do we need session auto-save to browser storage to
-  recover from accidental tab closes during a meeting? It is a
-  cheap safety net but adds state. Recommend yes, behind a
-  preference.
-- **OPEN:** Should BioSimCanvas ship with `template.biosim` and
-  `lunar/minihab.biosim` bundled (so the SPA is self-contained,
-  no separate file uploads needed for first-time users), or
-  always require the user to "Open" a file? Recommend bundled.
 - **OPEN:** Screenshot / PDF export of the schematic view for use
   in slides — defer to v-next or include as a thin "browser
   print to PDF" affordance?
+- **OPEN:** Right-panel tab strip UX — three modes (Properties /
+  Encyclopedia / LLM chat) share one column; confirm that a tab
+  strip at the top of the right panel is the right affordance,
+  or whether a separate toggle button per panel is clearer.
+- **OPEN:** LLM agent system prompt content — exact BioSim
+  domain context and constraints to include; to be iterated
+  through use.

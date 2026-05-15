@@ -4,6 +4,7 @@
 |----------|------|--------|---------|-----------|
 | 0.1 (draft) | 2026-05-12 | Initial draft | Project lead | TBD |
 | 0.2 (draft) | 2026-05-12 | Fixed malfunction schema (occursAtTick + 1-per-module); resolved NF-4 / NF-8 / NF-9 / F-VIEW-2 opens; flagged v1 acceptance journeys. To be reviewed at the next lab meeting (≈ T+8h). | Project lead | TBD |
+| 0.3 (draft) | 2026-05-15 | Cycle 2 — added functional groups KNOWLEDGE (F-KNOW-*) and LLM (F-LLM-*); updated NF-10 for LLM API exception; resolved open items from v0.2; added NF-11. | Project lead | TBD |
 
 ## How to read this document
 
@@ -13,7 +14,8 @@
   and a **Verify** field describing how compliance is checked.
 - Requirements are grouped by area: Functional (F-*) and
   Non-Functional (NF-*). Functional groups: `LOAD`, `MODEL`,
-  `EDIT`, `VIEW`, `ANOMALY`, `EXPORT`, `TEMPLATE`.
+  `EDIT`, `VIEW`, `ANOMALY`, `EXPORT`, `TEMPLATE`, `KNOWLEDGE`,
+  `LLM` (the last two added in v0.3).
 - Open items are inline as **OPEN:** callouts.
 
 ## 1. Functional Requirements
@@ -318,6 +320,129 @@ The system **MAY** allow the user to save the current model as
 a named local template.
 - **DEFERRED-TO-vNEXT.**
 
+### 1.8 Module Knowledge Base (F-KNOW-*) *(new in v0.3)*
+
+#### F-KNOW-1 — Physics tooltip on hover
+When the user hovers over a module node on the schematic canvas
+or a module item in the palette, the system **MUST** display a
+tooltip containing:
+- a one-sentence functional summary of the module class,
+- its resource ports (name, resource type, direction),
+- a one-line note on malfunction behavior (e.g. "SEVERE_MALF
+  disables output entirely").
+- **Trace**: [O-6](01-needs-goals-objectives.md#o-6-module-transparency-supports-g-6),
+  [SCN-6](02-concept-of-operations.md#scn-6).
+- **Verify**: hover over OGS node and OGS palette item; both
+  show tooltip with functional summary, ports, and malfunction
+  note within 300 ms.
+
+#### F-KNOW-2 — Module Encyclopedia panel
+The system **MUST** provide a browsable "Module Encyclopedia"
+panel accessible from the toolbar or from a "Learn more" link
+in any module tooltip. The panel **MUST** include an entry for
+every module type in the v1 catalog (F-MODEL-2), and each entry
+**MUST** contain:
+- module class name and subsystem grouping,
+- class hierarchy position (e.g. `SimBioModule → OGS`),
+- all configurable attributes with name, type, unit, and a
+  plain-language description of what changing the value does,
+- resource inputs and outputs (port name, resource type,
+  directionality),
+- malfunction behavior per intensity level (LOW / MEDIUM /
+  SEVERE) and length (TEMPORARY / PERMANENT), derived from the
+  BioSim Java source (commit `edb93e81`),
+- a "hidden physics" note where runtime behavior is not
+  derivable from the XML alone (e.g. WaterRS operational modes,
+  VCCR's internal subsystem graph).
+- **Trace**: [O-6](01-needs-goals-objectives.md#o-6),
+  [SCN-6](02-concept-of-operations.md#scn-6).
+- **Verify**: open the encyclopedia; navigate to WaterRS; entry
+  describes four power-based operational modes. Navigate to
+  Store; entry describes leak-rate behavior under malfunction.
+
+#### F-KNOW-3 — Knowledge base is static / curated
+The module knowledge base **MUST** be a static, curated data
+file bundled with the SPA (e.g. a TypeScript constant or JSON
+file). It is **not** generated at runtime from the BioSim
+source code. The content is authored once per BioSim version
+pin and updated when NF-8 (schema bundle drift) requires it.
+- **Trace**: [NF-7](03-requirements.md#nf-7--footprint--maintainability)
+  (simplicity), [NF-8](03-requirements.md#nf-8--schema-bundle-drift).
+- **Verify**: no network request is made when opening the
+  encyclopedia or any tooltip.
+
+### 1.9 LLM Authoring Assistant (F-LLM-*) *(new in v0.3)*
+
+#### F-LLM-1 — Toggleable chat sidebar
+The system **MUST** provide a toggleable chat sidebar panel
+(right-panel mode, alongside Properties and Encyclopedia) for
+interaction with the LLM authoring assistant. The sidebar
+**MUST** be openable and closable via a toolbar button and a
+keyboard shortcut without losing conversation history within
+the session.
+- **Trace**: [O-7](01-needs-goals-objectives.md#o-7-llm-authoring-assistant-supports-g-7),
+  [SCN-7](02-concept-of-operations.md#scn-7).
+- **Verify**: toggle the sidebar open and closed three times;
+  chat history persists; current canvas view is not obscured
+  when sidebar is closed.
+
+#### F-LLM-2 — Current configuration as agent context
+Before each user message is sent to the LLM, the system
+**MUST** serialize the current in-memory model to XML (using
+the same emitter as F-EXPORT-1) and include it as context in
+the request. The sidebar **SHOULD** display a brief indicator
+("Context: current config — N modules") so the user knows
+what the agent sees.
+- **Trace**: [O-7](01-needs-goals-objectives.md#o-7),
+  [SCN-7](02-concept-of-operations.md#scn-7).
+- **Verify**: with a loaded config, open the LLM sidebar; the
+  context indicator shows the correct module count; the agent
+  can refer to specific module names already in the config.
+
+#### F-LLM-3 — Config generation and rewrite
+When the LLM response contains a complete valid `.biosim` XML
+document (identified by the presence of the BioSim root
+element), the system **MUST**:
+1. parse the XML using the same parser as F-LOAD-1,
+2. replace the current in-memory model with the parsed result,
+3. re-render all active views (schematic, spatial, timeline),
+4. show a transient notification ("Canvas updated from LLM
+   response") with an **Undo** affordance.
+- **Trace**: [O-7](01-needs-goals-objectives.md#o-7),
+  [SCN-7](02-concept-of-operations.md#scn-7).
+- **Verify**: send "Create a minimal lunar habitat"; canvas
+  updates to show generated modules; undo reverts to prior
+  state.
+
+#### F-LLM-4 — Answer-only responses
+When the LLM response does **not** contain a `.biosim` XML
+document, the system **MUST** display the response as a chat
+message only, with no canvas modification.
+- **Trace**: [O-7](01-needs-goals-objectives.md#o-7).
+- **Verify**: ask "What is the purpose of the OGS?"; canvas
+  is unchanged; response appears in the chat panel.
+
+#### F-LLM-5 — API key configuration
+The LLM API key **MUST** be loaded from a `.env` file at the
+repo root (variable name `VITE_OPENAI_API_KEY`). The `.env`
+file **MUST NOT** be committed to version control (`.gitignore`
+entry required). If the key is absent, the LLM sidebar **MUST**
+display a clear setup instruction rather than failing silently.
+- **Trace**: [NF-10](03-requirements.md#nf-10--privacy--data-handling).
+- **Verify**: remove the key; sidebar shows "API key not
+  configured — add VITE_OPENAI_API_KEY to .env".
+
+#### F-LLM-6 — LLM agent uses latest agent-written config
+The agent context passed in F-LLM-2 **MUST** always reflect
+the current in-memory model, which is updated immediately when
+the agent rewrites the config (F-LLM-3). Subsequent messages
+in the same session therefore see the agent's own prior
+outputs.
+- **Trace**: [O-7](01-needs-goals-objectives.md#o-7).
+- **Verify**: ask agent to generate a config; then ask it to
+  "add a malfunction on the first OGS"; agent correctly
+  identifies the OGS from its prior output and updates it.
+
 ## 2. Non-Functional Requirements
 
 ### NF-1 — Browser-only static SPA
@@ -396,9 +521,24 @@ treated as data, not as source incorporated into BioSimCanvas.
 
 ### NF-10 — Privacy / data handling
 The system **MUST NOT** transmit configurations off the user's
-machine. All file I/O is local. No analytics in v1.
+machine **except** for the single, user-initiated LLM API
+request (F-LLM-2), which sends the current config XML to the
+configured LLM provider. No analytics. No passive telemetry.
+The user is aware of and initiates each LLM request explicitly
+(by sending a chat message). ITAR/EAR: current content is
+unclassified research; revisit if program scope changes.
 - **Trace**: [G-4](01-needs-goals-objectives.md#3-goals),
-  potential ITAR/EAR considerations.
+  [O-7](01-needs-goals-objectives.md#o-7).
+
+### NF-11 — LLM provider and model *(new in v0.3, updated v0.3.1)*
+The v2 prototype targets the **OpenAI API** (model: `gpt-4o`).
+The provider and model **SHOULD** be configurable via environment
+variables so switching requires no code change. The system **MUST**
+handle API errors (rate limit, key invalid, timeout) gracefully
+and display the error in the chat panel rather than crashing.
+- **Trace**: [F-LLM-5](03-requirements.md#f-llm-5--api-key-configuration).
+- **Verify**: provide an invalid key; the sidebar shows the
+  API error message without a JavaScript exception.
 
 ## 3. Traceability Matrix (rough)
 
@@ -412,6 +552,8 @@ tests. The intended high-level mapping is:
 | O-3 communicate in one screen | F-VIEW-1, F-VIEW-2, F-VIEW-3, F-EDIT-3 |
 | O-4 schema fidelity guard | F-LOAD-2, F-EXPORT-2..3, F-ANOMALY-2..3 |
 | O-5 bounded simplicity | NF-1, NF-2, NF-7, NF-10 |
+| O-6 module transparency | F-KNOW-1..3 |
+| O-7 LLM authoring assistant | F-LLM-1..6, NF-11 |
 
 ## 4. Open Items (Requirements-level)
 
@@ -425,9 +567,19 @@ Resolved in v0.2:
 - **RESOLVED (v0.2):** NF-8 — pin to BioSim commit `edb93e81`.
 - **RESOLVED (v0.2):** NF-9 — MIT.
 
+Resolved in v0.3:
+
+- **RESOLVED (v0.3):** F-EDIT-5 undo granularity — per-edit,
+  80-step limit. Implemented and confirmed in cycle 1.
+- **RESOLVED (v0.3):** NF-5 accessibility — informal best-effort;
+  no formal WCAG target for v1/v2.
+
 Still open:
 
-- **OPEN:** Define the comprehension-check questions used to
-  verify O-3 / F-VIEW-1.
-- **OPEN:** Decide F-EDIT-5 undo granularity.
-- **OPEN:** NF-5 accessibility posture (a formal target or not).
+- **OPEN:** Define the five comprehension-check questions used
+  to verify O-3 / F-VIEW-1 (non-BioSim lab mate usability test).
+- **OPEN:** LLM context window strategy — for large configs
+  (many modules), the serialized XML may approach token limits;
+  decide whether to truncate, summarize, or chunk the context.
+- **OPEN:** LLM system prompt content — BioSim domain knowledge
+  to include in the system prompt for best agent behavior.

@@ -8,11 +8,149 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+## 0.3.1 — 2026-05-15 — LLM provider change: OpenAI gpt-4o
+
+### Changed
+
+- `docs/03-requirements.md`: NF-11 updated — provider is now
+  **OpenAI** (`gpt-4o`); env var renamed to
+  `VITE_OPENAI_API_KEY`. F-LLM-5 verify step updated to match.
+- `docs/05-system-architecture.md`: §2.9 updated — SDK is now
+  `openai` (OpenAI TypeScript SDK); Chat Completions API
+  (`/v1/chat/completions`); env var `VITE_OPENAI_API_KEY`.
+  Architectural diagram and resolved-items list updated.
+
+### Decision
+
+- **LLM provider**: **OpenAI `gpt-4o`** (was Anthropic Claude).
+  No architectural impact — the request/response pattern
+  (serialize XML → send → scan for XML in response → parse)
+  is identical. Only the SDK and env var name change.
+
 - GitHub repository renamed to **`BiosimCanvas`** (formerly
   `Biosim-config`). Root `README.md` documents the canonical HTTPS
   clone URL; **§3 Repository layout** in
   `docs/05-system-architecture.md` matches the flat tree (`app/` at
   repo root).
+
+## 0.3.0 — 2026-05-15 — cycle 2 SE doc update (post-lab-meeting)
+
+Second cycle of the SE document set, triggered by lab meeting
+feedback. The prototype built in cycle 1 was well received; two
+core gaps were identified: (1) module physics and class hierarchy
+are opaque to non-BioSim users, and (2) no LLM-assisted authoring
+capability exists. This pass captures the new goals, scenarios,
+requirements, and architecture decisions needed to address both.
+
+### Changed
+
+- `docs/01-needs-goals-objectives.md` → v0.3:
+  - Added **G-6** (module transparency) and **G-7** (LLM
+    authoring assistant).
+  - Added **O-6** (module transparency acceptance check) and
+    **O-7** (LLM authoring acceptance check).
+  - Extended non-goals: custom module creation is explicitly
+    out of scope (BioSim modules are fixed Java classes); LLM
+    visual diff deferred to v-next.
+  - Extended success criteria with cycle-2 items (criteria 6
+    and 7).
+  - Resolved ITAR/EAR open item: content is unclassified
+    research.
+
+- `docs/02-concept-of-operations.md` → v0.3:
+  - Added **SCN-6** ("Understand a module before wiring it") —
+    cycle 2 acceptance gate for module transparency.
+  - Added **SCN-7** ("Ask the LLM to generate a starter
+    configuration") — cycle 2 acceptance gate for LLM
+    authoring.
+  - Updated §4 Operational Modes to describe the three-mode
+    right panel (Properties / Encyclopedia / LLM chat) and
+    the module palette tooltip.
+  - Updated §5 lifecycle diagram to show LLM chat as a
+    parallel edit path.
+  - Resolved ConOps open items (undo granularity, autosave,
+    bundled templates, cycle-2 acceptance journeys).
+
+- `docs/03-requirements.md` → v0.3:
+  - Added functional group **F-KNOW-*** (module knowledge
+    base): F-KNOW-1 (physics tooltip), F-KNOW-2 (encyclopedia
+    panel), F-KNOW-3 (static curated knowledge base).
+  - Added functional group **F-LLM-*** (LLM authoring
+    assistant): F-LLM-1 (toggleable sidebar), F-LLM-2
+    (config as context), F-LLM-3 (config generation/rewrite),
+    F-LLM-4 (answer-only responses), F-LLM-5 (API key config),
+    F-LLM-6 (agent sees its own prior outputs).
+  - Updated **NF-10** (privacy): LLM API call is the explicit
+    exception to the no-off-machine-transmission rule.
+  - Added **NF-11**: LLM provider (Anthropic Claude), model
+    configurability, and graceful error handling.
+  - Updated traceability matrix for O-6 and O-7.
+  - Resolved F-EDIT-5 undo granularity (per-edit, 80 steps)
+    and NF-5 accessibility (informal best-effort, no WCAG
+    target).
+
+- `docs/04-ui-ux-vision.md` → v0.3:
+  - Added design principle 7 (Transparent Physics).
+  - Updated §3 Information Architecture: right panel is now a
+    three-mode column (Properties / Encyclopedia / Chat); left
+    palette is toggleable; layout ASCII updated.
+  - Added **§4.5 Module Encyclopedia panel** description.
+  - Added **§4.6 LLM chat sidebar** description with layout
+    ASCII and interaction rules.
+  - Renamed old §4.5 → §4.7 Export review modal.
+  - Added interaction storyboards **6.4** (reviewer asks about
+    OGS, SCN-6 fragment) and **6.5** (agent drafts a habitat,
+    SCN-7 fragment).
+  - Added open items for right-panel tab strip UX and agent
+    response formatting.
+
+- `docs/05-system-architecture.md` → v0.3:
+  - Updated §1 architectural diagram to include LLM adapter
+    and Anthropic API as the one outbound network path.
+  - Added **§2.9 LLM integration** (Anthropic Claude API,
+    `@anthropic-ai/sdk`, request construction, response
+    handling, security note).
+  - Added **§4.6 LLM round-trip** (how emitter/parser are
+    reused; undo integration).
+  - Added **§4.7 Module knowledge base** (`moduleKnowledge.ts`
+    static constant; shared by encyclopedia, tooltips, and
+    optionally the LLM system prompt).
+  - Updated §5 risks table: added four LLM-specific risks with
+    mitigations; updated status of cycle-1 risks.
+  - Resolved framework, XSD validation strategy, and repo
+    layout open items (all confirmed by cycle 1 build).
+  - Added LLM provider decision and two new open items (system
+    prompt content; whether to include knowledge base in prompt).
+
+### Decisions captured in this pass
+
+- **Module transparency**: surface BioSim's fixed class
+  hierarchy and per-module physics via in-app tooltips and a
+  Module Encyclopedia panel. Do **not** imply custom module
+  creation is possible.
+- **LLM authoring**: Anthropic Claude API; key via `.env`;
+  current config XML serialized and sent as context on each
+  turn; LLM XML output round-trips through the existing
+  parser/emitter; undo captures LLM-driven changes.
+- **LLM interaction model**: user drives conversation;
+  agent decides whether to answer only or answer + rewrite
+  config; no structured "diff preview" in v2 prototype
+  (deferred to v-next).
+- **Right panel**: three modes (Properties / Encyclopedia /
+  Chat) share one column, switched via tab strip.
+- **ITAR/EAR**: no restriction on current content; resolved.
+
+### Open items rolled forward
+
+1. Five comprehension-check questions for O-3 / F-VIEW-1
+   usability test.
+2. LLM system prompt content (exact BioSim domain context and
+   output-format instructions).
+3. LLM context window strategy for large configs.
+4. Right-panel tab strip vs. separate toggle buttons (UX
+   confirmation).
+5. Whether to include `moduleKnowledge.ts` in the LLM system
+   prompt.
 
 ## 0.2.0 — 2026-05-12 — resolve v0.1 open items
 

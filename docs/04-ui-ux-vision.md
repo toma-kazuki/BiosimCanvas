@@ -3,6 +3,7 @@
 | Revision | Date | Status | Authors | Reviewers |
 |----------|------|--------|---------|-----------|
 | 0.1 (draft) | 2026-05-12 | Initial draft — to be reviewed in the next lab meeting | Project lead | TBD |
+| 0.3 (draft) | 2026-05-15 | Cycle 2 — updated information architecture for three-mode right panel; added §4.5 Module Encyclopedia, §4.6 LLM chat sidebar; added interaction storyboards 6.4 and 6.5. Added design principle 7 (Transparent Physics). | Project lead | TBD |
 
 This document is the **frontend visual definition** for BioSimCanvas:
 the design language, screen anatomy, key interactions, and the
@@ -31,6 +32,14 @@ implementation-agnostic; UI tech choices live in
 6. **Quiet defaults.** A freshly opened template should look
    organized, not noisy. Color is meaningful; ornament is rare.
 
+7. **Transparent physics.** *(new in v0.3)* Every module on the
+   canvas carries its physical meaning with it. A user who does
+   not know BioSim should be able to hover a node and understand
+   what it does, what it needs, and what it produces — without
+   leaving the app. The UI does not imply that modules are more
+   configurable than they are; it is honest about what is fixed
+   in the simulator and what is parameterizable via XML.
+
 ## 2. Personas (operational summary)
 
 Full background is in [`00-stakeholders.md`](00-stakeholders.md).
@@ -49,31 +58,40 @@ solo** second, **Reviewer-watching** third.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│ App bar:  BioSimCanvas | <config name>     [Open] [Save] [⚙]    │
+│ App bar:  BioSimCanvas | <config name>  [Open] [Save] [💬] [⚙]  │
 ├──────────┬───────────────────────────────────────────┬───────────┤
-│          │                                           │           │
-│ Palette  │           Canvas area                     │ Side      │
-│ (left)   │   (schematic | spatial | timeline | XML)  │ panel     │
-│          │                                           │ (right)   │
-│          │                                           │           │
+│          │                                           │ [Props]   │
+│ Palette  │           Canvas area                     │ [Encycl.] │
+│ (left)   │   (schematic | spatial | timeline | XML)  │ [Chat]    │
+│  toggle  │                                           │           │
+│          │                                           │  (right   │
+│          │                                           │   panel)  │
 ├──────────┴───────────────────────────────────────────┴───────────┤
 │ Status bar:  <selection summary> | warnings: N | export ▶        │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-Three columns:
+Three columns, with independently toggleable left and right panels:
 
 - **Left — Module palette.** Categorized list (Environment, Air,
   Water, Power, Food, Waste, Crew, Framework, Sensors). Drag
-  source for placing new modules. Collapsible groups.
+  source for placing new modules. Collapsible groups. Each item
+  shows a one-line physics tooltip on hover. Toggleable via
+  toolbar button or keyboard shortcut.
 - **Center — Canvas area.** Tab-style view switcher at the top:
   *Schematic | Spatial | Timeline | XML*. The active view fills
   the column. View state (zoom, scroll, selection) is preserved
   per view.
-- **Right — Side panel.** Inspector for the current selection.
-  Always visible (collapsible only on small windows). Sections
-  are typed by the selected element kind (module, edge, crew
-  member, sensor, malfunction).
+- **Right — Three-mode panel.** *(updated in v0.3)* A tab strip
+  at the top of the right column switches between three modes:
+  - **Properties** — inspector for the current selection
+    (module, edge, crew member, sensor, malfunction). Sections
+    typed by element kind.
+  - **Encyclopedia** — browsable module reference; see §4.5.
+  - **Chat** — LLM authoring assistant; see §4.6.
+  The right panel is toggleable as a whole (keyboard shortcut).
+  Switching modes does not clear state — the selected element
+  remains selected when switching back to Properties.
 
 Bottom **status bar** is the persistent home of validation:
 total warnings count, jump-to-warning, and the **Export** button.
@@ -147,7 +165,79 @@ default; an "Edit" toggle enables a Monaco-style editor. On
 exiting edit mode the XML is re-parsed; errors keep the user
 in the editor with markers.
 
-### 4.5 Export review modal
+### 4.5 Module Encyclopedia panel *(new in v0.3)*
+
+A right-panel mode (see §3) that presents a searchable,
+scrollable list of all v1 module types, organized by subsystem.
+Selecting a module opens its full entry:
+
+- **Header**: module class name, subsystem badge, one-sentence
+  summary.
+- **Class hierarchy**: e.g. `IBioModule → BioModule →
+  SimBioModule → OGS`. Shown as a compact breadcrumb. Makes
+  clear that module types are fixed Java classes, not
+  user-defined entities.
+- **Resource ports**: a small table of port name, resource
+  type, and direction (consumer / producer).
+- **Configurable attributes**: table of attribute name, type,
+  unit (if applicable), and a plain-language description.
+  Attributes that are *not* configurable via XML (e.g. VCCR's
+  internal valve graph) are called out explicitly as
+  "simulator-internal, not configurable."
+- **Malfunction behavior**: what happens under LOW / MEDIUM /
+  SEVERE intensity, and TEMPORARY / PERMANENT duration. For
+  stores, shows the specific leak rates (5 / 10 / 20% per tick)
+  and capacity reduction factors (0.5× / 0.25× / 0).
+- **Hidden physics note**: for complex modules (VCCR, WaterRS),
+  a brief prose description of runtime behavior not expressed
+  in the XML (e.g. "WaterRS selects one of four operational
+  modes each tick based on available power; see entry for
+  detail").
+
+The panel is **read-only** — it documents the fixed BioSim
+module library. It does not offer any editing affordance.
+
+### 4.6 LLM chat sidebar *(new in v0.3)*
+
+A right-panel mode (see §3) for the LLM authoring assistant.
+
+**Layout:**
+```
+┌──────────────────────────────────────┐
+│ Context: current config — 12 modules │  ← status line
+├──────────────────────────────────────┤
+│                                      │
+│  [chat history — scrollable]         │
+│                                      │
+│  User:  Create a two-crew lunar      │
+│         habitat with closed loops.   │
+│                                      │
+│  Agent: Here's a starter config...   │
+│         [Canvas updated ↩ Undo]      │
+│                                      │
+├──────────────────────────────────────┤
+│ [text input]              [Send ▶]   │
+└──────────────────────────────────────┘
+```
+
+**Interaction rules:**
+- The context status line always shows the module count of the
+  config that will be sent with the next message. It updates
+  immediately when the canvas changes.
+- When the agent returns a config update, a transient banner
+  appears in the chat ("Canvas updated") with an **Undo** link
+  that restores the prior model state.
+- Agent responses that contain only prose (no XML) are
+  displayed as plain chat bubbles with no canvas change.
+- If the API key is not configured, the input is disabled and
+  a setup instruction is shown in place of the chat history.
+
+**Visual style:** the chat sidebar uses the same surface
+tokens as the rest of the app (`--surface`, `--surface-2`).
+User messages are right-aligned; agent messages left-aligned
+with a subtle `--surface-2` background.
+
+### 4.7 Export review modal *(was 4.5)*
 
 Triggered by the **Export** button. Shows:
 
@@ -245,6 +335,48 @@ These short storyboards are written to be testable.
 5. Export review panel summarizes: "1 malfunction scheduled
    (OGS, MEDIUM_MALF, TEMPORARY_MALF, tick 5000)".
 
+### 6.4 "Reviewer asks what OGS does" (SCN-6 fragment) *(new in v0.3)*
+
+1. Reviewer asks: "What does OGS consume and what comes out?"
+2. Driver hovers over the OGS node on the schematic. A tooltip
+   appears within 300 ms:
+   > **OGS** — Electrolyzes potable water into O₂ and H₂;
+   > requires power.
+   > Consumes: powerConsumer, potableWaterConsumer
+   > Produces: O₂Producer, H₂Producer
+   > Malfunction: SEVERE_MALF disables output entirely.
+3. Reviewer asks: "What happens to water recovery if power is
+   halved?" Driver opens the Module Encyclopedia (right panel →
+   Encyclopedia tab), navigates to WaterRS.
+4. The WaterRS entry shows the four operational modes:
+   - FULL: all 4 subsystems on — max potable water
+   - PARTIAL: AES off — 85% output, lower power draw
+   - GREY_WATER_ONLY: only BWP + RO active
+   - OFF: no output
+   And explains: "Mode is selected each tick based on available
+   power vs. each subsystem's base power need."
+5. Reviewer: "Got it." No XML was opened.
+
+### 6.5 "Ask the agent to draft a habitat" (SCN-7 fragment) *(new in v0.3)*
+
+1. Driver starts from the empty template. Opens LLM chat sidebar
+   (toolbar or `Shift+L`). Status line reads:
+   "Context: current config — 1 module."
+2. Driver types: "Create a minimal two-crew lunar habitat with
+   closed air and water loops."
+3. Agent responds in the chat: "Here's a starter configuration
+   with an OGS, VCCR, WaterRS, two potable/dirty/grey water
+   stores, O₂/CO₂/N₂ stores, a power store, and a two-person
+   crew group. I've set default flow rates; you can tune them
+   in the side panel." Below the prose, the XML is applied
+   automatically.
+4. Canvas updates: schematic shows the generated modules and
+   connections. Status line updates: "Context: current config
+   — 14 modules."
+5. Driver asks: "Add a MEDIUM/TEMPORARY OGS malfunction at
+   tick 3000." Agent updates the XML; canvas and timeline
+   reflect the new malfunction marker.
+
 ### 6.3 "Lab director points at a node and asks a question" (SCN-1)
 
 1. Driver clicks the `Main_VCCR` node on the schematic.
@@ -280,3 +412,10 @@ These short storyboards are written to be testable.
 - **OPEN:** "Read mode" preset (auto-hides palette and side
   panel) for when the meeting transitions from authoring to
   pure review. Cheap to add; worth confirming desire.
+- **OPEN (v0.3):** Right-panel tab strip vs. separate toggle
+  buttons — confirm which affords discoverability better for
+  the Encyclopedia and Chat modes in a meeting setting.
+- **OPEN (v0.3):** LLM chat message formatting — should agent
+  responses that describe configuration changes include a
+  structured summary list (modules added/changed) in addition
+  to prose? Useful for quick scanning in a meeting.

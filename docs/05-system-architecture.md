@@ -119,39 +119,36 @@ explicitly approves them. The simpler-is-better preference applies.
 - Tests: Vitest + React Testing Library.
 - E2E (later): Playwright for SCN-1..SCN-4 smoke tests.
 
-## 3. Repository layout (proposed)
+## 3. Repository layout (current)
+
+GitHub repository name: **`BiosimCanvas`**. Local clones commonly use a
+matching top-level folder name; Git metadata is unaffected by that path.
 
 ```
-biosim-config/                      # repo root
+BiosimCanvas/
 ├── README.md
-├── template.biosim                 # current authoring baseline
+├── LICENSE
+├── template.biosim                 # current authoring baseline (also mirrored under app/)
 ├── docs/                           # SE artifacts (this set)
-├── packages/
-│   └── app/                        # the SPA (created when we start coding)
-│       ├── public/
-│       ├── src/
-│       │   ├── domain/             # canonical model + types
-│       │   ├── schema/             # XSD-derived types + bundled XSDs
-│       │   ├── io/                 # parse, emit, validate
-│       │   ├── ui/                 # React components
-│       │   │   ├── schematic/      # XYFlow nodes & edges
-│       │   │   ├── spatial/
-│       │   │   ├── timeline/
-│       │   │   ├── side-panel/
-│       │   │   └── xml-view/
-│       │   ├── state/              # zustand stores + undo middleware
-│       │   ├── templates/          # bundled .biosim templates
-│       │   └── main.tsx
-│       └── tests/
-└── tools/                          # one-off scripts (xsd → ts, etc.)
+├── app/                            # Vite + React SPA
+│   ├── public/
+│   │   └── templates/              # bundled .biosim templates
+│   ├── scripts/                    # Node tooling (reference checks, smoke, round-trip)
+│   ├── src/
+│   │   ├── domain/                 # canonical model + types
+│   │   ├── io/                     # parse, emit, validate
+│   │   ├── session/
+│   │   ├── state/                  # zustand + undo
+│   │   └── ui/                     # React views (schematic, spatial, timeline, XML, …)
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.ts
+└── .gitignore
 ```
 
-- **OPEN:** is the SPA worth a monorepo (`packages/app`), or
-  should we keep it flat at the repo root for simplicity? The
-  monorepo shape costs little, leaves room for a future
-  `packages/cli` or `packages/schema`. Recommend flat for v1
-  given the simpler-is-better bias; revisit if a second
-  package emerges.
+- **Resolved for v1:** flat layout with `app/` at the repo root (not
+  `packages/app`). Revisit a monorepo shape only if a second
+  publishable package (e.g. CLI or standalone schema bundle) appears.
 
 ## 4. Cross-cutting decisions
 

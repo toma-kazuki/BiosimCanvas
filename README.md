@@ -22,7 +22,12 @@ This repository holds the **BioSimCanvas web app** (`app/`) and
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) **18+** (LTS recommended) and **npm**
-- A clone of this repository
+- A clone of this repository:
+
+```bash
+git clone https://github.com/toma-kazuki/BiosimCanvas.git
+cd BiosimCanvas
+```
 
 ### Install and run the app
 

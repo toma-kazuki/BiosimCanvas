@@ -8,7 +8,11 @@ The format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
-- Nothing yet.
+- GitHub repository renamed to **`BiosimCanvas`** (formerly
+  `Biosim-config`). Root `README.md` documents the canonical HTTPS
+  clone URL; **§3 Repository layout** in
+  `docs/05-system-architecture.md` matches the flat tree (`app/` at
+  repo root).
 
 ## 0.2.0 — 2026-05-12 — resolve v0.1 open items
 

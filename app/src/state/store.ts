@@ -37,6 +37,7 @@ import {
 } from "./history";
 
 export type CanvasView = "schematic" | "spatial" | "timeline" | "xml" | "review";
+export type RightPanelTab = "properties" | "encyclopedia" | "chat";
 
 interface CanvasState {
   doc: BiosimDocument | null;
@@ -45,6 +46,11 @@ interface CanvasState {
   view: CanvasView;
   /** Surface short-lived banner text (rename collisions, etc.). */
   toast: string | null;
+
+  /** UI panel visibility — not part of undo history. */
+  rightPanelTab: RightPanelTab;
+  rightPanelOpen: boolean;
+  paletteOpen: boolean;
   /**
    * Last successful File System Access save handle for the main `.biosim`
    * file — cleared when a new document is loaded. Not available after
@@ -66,6 +72,9 @@ interface CanvasState {
   selectModule: (name: string | null) => void;
   setView: (v: CanvasView) => void;
   setToast: (msg: string | null) => void;
+  setRightPanelTab: (tab: RightPanelTab) => void;
+  setRightPanelOpen: (open: boolean) => void;
+  setPaletteOpen: (open: boolean) => void;
   setAutosaveEnabled: (enabled: boolean) => void;
   undo: () => void;
   redo: () => void;
@@ -121,6 +130,9 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   past: [],
   future: [],
   autosaveEnabled: loadAutosavePreference(),
+  rightPanelTab: "properties",
+  rightPanelOpen: true,
+  paletteOpen: true,
 
   setDoc: (doc) =>
     set({
@@ -142,9 +154,19 @@ export const useCanvasStore = create<CanvasState>((set) => ({
       };
     }),
 
-  selectModule: (name) => set({ selectedModuleName: name }),
+  selectModule: (name) =>
+    set({
+      selectedModuleName: name,
+      // Auto-open right panel on Properties tab when a module is selected
+      ...(name !== null
+        ? { rightPanelOpen: true, rightPanelTab: "properties" as RightPanelTab }
+        : {}),
+    }),
   setView: (v) => set({ view: v }),
   setToast: (msg) => set({ toast: msg }),
+  setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
+  setRightPanelOpen: (open) => set({ rightPanelOpen: open }),
+  setPaletteOpen: (open) => set({ paletteOpen: open }),
 
   setAutosaveEnabled: (enabled) => {
     saveAutosavePreference(enabled);

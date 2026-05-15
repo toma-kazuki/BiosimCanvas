@@ -2062,3 +2062,104 @@ select.field:focus {
   color: var(--text-muted);
   line-height: 1.6;
 }
+
+/* ── Right panel tab strip + palette toggle (Task 4) ────────────────── */
+
+.palette-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-collapse-btn {
+  position: absolute;
+  top: 4px;
+  right: -12px;
+  z-index: 10;
+  width: 16px;
+  height: 32px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 0 4px 4px 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.panel-collapse-btn:hover { color: var(--text); background: var(--surface-3); }
+
+.panel-reveal-btn {
+  width: 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.panel-reveal-btn:hover { color: var(--text); background: var(--surface-3); }
+
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.right-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.rp-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 7px 4px;
+  cursor: pointer;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.rp-tab:hover { color: var(--text); }
+.rp-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.rp-close {
+  flex: none;
+  width: 32px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.right-panel-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-placeholder {
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}

@@ -25,6 +25,8 @@ export function KeyboardShortcutsModal({ open, onClose }: Props) {
     ["⌘ / Ctrl + S", "Save .biosim"],
     ["⌘ / Ctrl + O", "Open .biosim file…"],
     ["Alt + 1 … Alt + 5", "Switch view (order below)"],
+    ["Shift + E", "Open Encyclopedia panel"],
+    ["Shift + L", "Open LLM Chat panel"],
     ["Escape", "Clear module selection"],
     ["?", "Show this help"],
   ];

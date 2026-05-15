@@ -21,6 +21,8 @@ import { Spatial } from "./spatial/Spatial";
 import { Timeline } from "./timeline/Timeline";
 import { Review } from "./review/Review";
 import { XmlView } from "./xml-view/XmlView";
+import { Encyclopedia } from "./encyclopedia/Encyclopedia";
+import type { RightPanelTab } from "../state/store";
 
 interface BundledTemplate {
   id: string;
@@ -75,6 +77,12 @@ export function App() {
   const view = useCanvasStore((s) => s.view);
   const biosimFileHandle = useCanvasStore((s) => s.biosimFileHandle);
   const applyBiosimSave = useCanvasStore((s) => s.applyBiosimSave);
+  const rightPanelTab = useCanvasStore((s) => s.rightPanelTab);
+  const rightPanelOpen = useCanvasStore((s) => s.rightPanelOpen);
+  const paletteOpen = useCanvasStore((s) => s.paletteOpen);
+  const setRightPanelTab = useCanvasStore((s) => s.setRightPanelTab);
+  const setRightPanelOpen = useCanvasStore((s) => s.setRightPanelOpen);
+  const setPaletteOpen = useCanvasStore((s) => s.setPaletteOpen);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [sessionOffer, setSessionOffer] = useState<StoredSessionV1 | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -204,6 +212,22 @@ export function App() {
         return;
       }
 
+      // Shift+E → Encyclopedia, Shift+L → LLM Chat
+      if (e.shiftKey && !mod) {
+        if (e.key === "E") {
+          e.preventDefault();
+          setRightPanelOpen(true);
+          setRightPanelTab("encyclopedia");
+          return;
+        }
+        if (e.key === "L") {
+          e.preventDefault();
+          setRightPanelOpen(true);
+          setRightPanelTab("chat");
+          return;
+        }
+      }
+
       if (mod && (e.key === "s" || e.key === "S")) {
         e.preventDefault();
         void saveBiosim(false);
@@ -235,6 +259,8 @@ export function App() {
     saveBiosim,
     selectModule,
     setView,
+    setRightPanelOpen,
+    setRightPanelTab,
     showHelp,
     closeHelp,
     helpOpen,
@@ -332,7 +358,29 @@ export function App() {
         </div>
       )}
 
-      <Palette />
+      {/* Left palette — toggleable */}
+      {paletteOpen ? (
+        <div className="palette-wrap">
+          <button
+            type="button"
+            className="panel-collapse-btn palette-collapse"
+            title="Hide palette"
+            onClick={() => setPaletteOpen(false)}
+          >
+            ‹
+          </button>
+          <Palette />
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="panel-reveal-btn palette-reveal"
+          title="Show palette"
+          onClick={() => setPaletteOpen(true)}
+        >
+          ›
+        </button>
+      )}
 
       <div className="canvas">
         <ViewSwitcher onExportPng={runExportPng} onShowHelp={showHelp} />
@@ -353,7 +401,49 @@ export function App() {
         )}
       </div>
 
-      <SidePanel />
+      {/* Right panel — three-tab: Properties / Encyclopedia / Chat */}
+      {rightPanelOpen ? (
+        <div className="right-panel">
+          <div className="right-panel-tabs">
+            {(["properties", "encyclopedia", "chat"] as RightPanelTab[]).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={`rp-tab${rightPanelTab === tab ? " active" : ""}`}
+                onClick={() => setRightPanelTab(tab)}
+              >
+                {tab === "properties" ? "Properties" : tab === "encyclopedia" ? "Encyclopedia" : "Chat"}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="rp-tab rp-close"
+              title="Close panel"
+              onClick={() => setRightPanelOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
+          <div className="right-panel-body">
+            {rightPanelTab === "properties" && <SidePanel />}
+            {rightPanelTab === "encyclopedia" && <Encyclopedia />}
+            {rightPanelTab === "chat" && (
+              <div className="chat-placeholder">
+                <p>LLM chat — coming in Task 5</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="panel-reveal-btn right-panel-reveal"
+          title="Show panel"
+          onClick={() => setRightPanelOpen(true)}
+        >
+          ‹
+        </button>
+      )}
 
       <KeyboardShortcutsModal open={helpOpen} onClose={closeHelp} />
 

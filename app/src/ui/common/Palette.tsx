@@ -13,7 +13,7 @@
 //   dataTransfer key:   "application/biosim-kind"
 //   dataTransfer value: the module kind string ("Fan", "OGS", …)
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useCanvasStore } from "../../state/store";
 import {
   MODULE_KINDS,
@@ -26,6 +26,7 @@ import {
   generateUniqueModuleName,
 } from "../../domain/factories";
 import type { ModuleNode, Subsystem } from "../../domain/types";
+import { PhysicsTooltip } from "./PhysicsTooltip";
 
 export const KIND_DRAG_MIME = "application/biosim-kind";
 
@@ -34,6 +35,7 @@ export function Palette() {
   const addModule = useCanvasStore((s) => s.addModule);
   const selectModule = useCanvasStore((s) => s.selectModule);
   const selectedName = useCanvasStore((s) => s.selectedModuleName);
+  const [dragging, setDragging] = useState(false);
 
   const catalogBySub = useMemo(() => groupKindsBySubsystem(), []);
 
@@ -85,22 +87,25 @@ export function Palette() {
               {kinds.map((kind) => {
                 const meta = MODULE_KINDS[kind];
                 return (
-                  <button
-                    key={`cat-${kind}`}
-                    type="button"
-                    className="catalog-chip"
-                    draggable
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData(KIND_DRAG_MIME, kind);
-                      e.dataTransfer.setData("text/plain", kind);
-                      e.dataTransfer.effectAllowed = "copy";
-                    }}
-                    onClick={() => handleCatalogClick(kind)}
-                    title={`Add a new ${meta.label}`}
-                  >
-                    <span className="catalog-glyph">{meta.glyph}</span>
-                    <span className="catalog-label">{meta.label}</span>
-                  </button>
+                  <PhysicsTooltip key={`cat-${kind}`} moduleType={kind} suppress={dragging}>
+                    <button
+                      type="button"
+                      className="catalog-chip"
+                      draggable
+                      onDragStart={(e) => {
+                        setDragging(true);
+                        e.dataTransfer.setData(KIND_DRAG_MIME, kind);
+                        e.dataTransfer.setData("text/plain", kind);
+                        e.dataTransfer.effectAllowed = "copy";
+                      }}
+                      onDragEnd={() => setDragging(false)}
+                      onClick={() => handleCatalogClick(kind)}
+                      title={`Add a new ${meta.label}`}
+                    >
+                      <span className="catalog-glyph">{meta.glyph}</span>
+                      <span className="catalog-label">{meta.label}</span>
+                    </button>
+                  </PhysicsTooltip>
                 );
               })}
             </div>

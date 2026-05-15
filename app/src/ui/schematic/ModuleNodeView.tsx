@@ -1,6 +1,7 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import type { SchematicNodeData } from "../../domain/graph";
 import { MODULE_KINDS, SUBSYSTEM_COLOR, SUBSYSTEM_LABEL } from "../../domain/registry";
+import { PhysicsTooltip } from "../common/PhysicsTooltip";
 
 export function ModuleNodeView(props: NodeProps) {
   const { data, selected } = props;
@@ -13,28 +14,30 @@ export function ModuleNodeView(props: NodeProps) {
   const meta2 = secondaryLine(module);
 
   return (
-    <div
-      className={`mod-node${selected ? " selected" : ""}${isStore ? " store" : ""}`}
-      style={{ borderColor: SUBSYSTEM_COLOR[sub] }}
-    >
-      <Handle type="target" position={Position.Left} />
-      <div className="kind-row">
-        <span className="glyph">{glyph}</span>
-        <span>{subLabel}</span>
-        <span style={{ flex: 1 }} />
-        <span style={{ color: SUBSYSTEM_COLOR[sub], fontWeight: 600 }}>
-          {SUBSYSTEM_LABEL[sub]}
-        </span>
-      </div>
-      <div className="name">{module.moduleName}</div>
-      {meta2 && <div className="meta">{meta2}</div>}
-      {module.malfunction && (
-        <div className="malf-badge">
-          ⚠ malfunction @ tick {module.malfunction.occursAtTick}
+    <PhysicsTooltip moduleType={module.kind} suppress={selected}>
+      <div
+        className={`mod-node${selected ? " selected" : ""}${isStore ? " store" : ""}`}
+        style={{ borderColor: SUBSYSTEM_COLOR[sub] }}
+      >
+        <Handle type="target" position={Position.Left} />
+        <div className="kind-row">
+          <span className="glyph">{glyph}</span>
+          <span>{subLabel}</span>
+          <span style={{ flex: 1 }} />
+          <span style={{ color: SUBSYSTEM_COLOR[sub], fontWeight: 600 }}>
+            {SUBSYSTEM_LABEL[sub]}
+          </span>
         </div>
-      )}
-      <Handle type="source" position={Position.Right} />
-    </div>
+        <div className="name">{module.moduleName}</div>
+        {meta2 && <div className="meta">{meta2}</div>}
+        {module.malfunction && (
+          <div className="malf-badge">
+            ⚠ malfunction @ tick {module.malfunction.occursAtTick}
+          </div>
+        )}
+        <Handle type="source" position={Position.Right} />
+      </div>
+    </PhysicsTooltip>
   );
 }
 

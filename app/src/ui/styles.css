@@ -1814,3 +1814,55 @@ select.field:focus {
   outline: 1px solid var(--accent);
   border-radius: 3px;
 }
+
+/* ── Physics tooltip (F-KNOW-1) ─────────────────────────────────────── */
+
+.physics-tooltip {
+  position: fixed;
+  z-index: 9999;
+  max-width: 280px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.pt-title {
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.pt-summary {
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.pt-row {
+  display: flex;
+  gap: 6px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.pt-label {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 72px;
+}
+
+.pt-malf {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  color: var(--warn);
+}
+
+.pt-malf .pt-label {
+  color: var(--warn);
+}

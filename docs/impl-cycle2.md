@@ -16,19 +16,19 @@
 | **Source gaps** | `docs/feedback_v1.md` — lab meeting identified opaque module physics and absence of LLM authoring |
 | **Design specs** | `docs/03-requirements.md` §1.8 (F-KNOW-*), §1.9 (F-LLM-*), §2 (NF-11); `docs/04-ui-ux-vision.md` §3, §4.5, §4.6; `docs/05-system-architecture.md` §2.9, §4.6, §4.7 |
 | **Baseline commit** | `7d5edfc` (memory files — last commit before implementation) |
-| **Implementation commit** | *(fill in after complete)* |
-| **Status** | 🔲 Not started |
+| **Implementation commit** | `05466e5` (Task 5 — LLM chat sidebar) |
+| **Status** | ✅ Complete |
 
 ### Commits that constitute this revision
 
 | Hash | Message summary | Scope |
 | :--- | :--- | :--- |
 | `7d5edfc` | Baseline — memory files committed | — |
-| *(pending)* | Task 1: module knowledge base | `app/src/domain/moduleKnowledge.ts` |
-| *(pending)* | Task 2: physics tooltips on palette + canvas nodes | `app/src/ui/common/Palette.tsx`, `app/src/ui/schematic/ModuleNodeView.tsx` |
-| *(pending)* | Task 3: Module Encyclopedia panel | `app/src/ui/encyclopedia/Encyclopedia.tsx` (new) |
-| *(pending)* | Task 4: right-panel tab strip + panel restructure | `app/src/ui/App.tsx`, `app/src/ui/side-panel/SidePanel.tsx`, `app/src/ui/styles.css` |
-| *(pending)* | Task 5: LLM adapter + chat sidebar | `app/src/llm/`, `app/src/ui/chat/LlmChat.tsx` (new), `app/src/state/store.ts`, `app/.env.example` |
+| `b9a5bbb` | Task 1: module knowledge base | `app/src/domain/moduleKnowledge.ts` |
+| `8047ea8` | Task 2: physics tooltips on palette + canvas nodes | `app/src/ui/common/Palette.tsx`, `app/src/ui/schematic/ModuleNodeView.tsx` |
+| `350da29` | Task 3: Module Encyclopedia panel | `app/src/ui/encyclopedia/Encyclopedia.tsx` (new) |
+| `5c3be0e` | Task 4: right-panel tab strip + panel restructure | `app/src/ui/App.tsx`, `app/src/ui/side-panel/SidePanel.tsx`, `app/src/ui/styles.css` |
+| `05466e5` | Task 5: LLM adapter + chat sidebar | `app/src/llm/`, `app/src/ui/chat/LlmChat.tsx` (new), `app/src/state/store.ts`, `app/.env.example` |
 
 ---
 
@@ -53,12 +53,12 @@ The existing `registry.ts` captures module names, subsystem assignments, glyphs,
 | # | Task | Scope | Status |
 | :--- | :--- | :--- | :--- |
 | — | Confirm baseline commit | — | ✅ `7d5edfc` |
-| 1 | Module knowledge base (`moduleKnowledge.ts`) | `app/src/domain/` | 🔲 Not started |
-| 2 | Physics tooltips on palette items and canvas nodes | `app/src/ui/common/Palette.tsx`, `app/src/ui/schematic/ModuleNodeView.tsx` | 🔲 Not started |
-| 3 | Module Encyclopedia panel component | `app/src/ui/encyclopedia/` (new) | 🔲 Not started |
-| 4 | Right-panel tab strip restructure (Properties / Encyclopedia / Chat) | `app/src/ui/App.tsx`, `app/src/ui/side-panel/`, `app/src/ui/styles.css` | 🔲 Not started |
-| 5 | LLM adapter + chat sidebar | `app/src/llm/` (new), `app/src/ui/chat/` (new), `app/src/state/store.ts` | 🔲 Not started |
-| — | Implementation commits | — | 🔲 Not started |
+| 1 | Module knowledge base (`moduleKnowledge.ts`) | `app/src/domain/` | ✅ `b9a5bbb` |
+| 2 | Physics tooltips on palette items and canvas nodes | `app/src/ui/common/Palette.tsx`, `app/src/ui/schematic/ModuleNodeView.tsx` | ✅ `8047ea8` |
+| 3 | Module Encyclopedia panel component | `app/src/ui/encyclopedia/` (new) | ✅ `350da29` |
+| 4 | Right-panel tab strip restructure (Properties / Encyclopedia / Chat) | `app/src/ui/App.tsx`, `app/src/ui/side-panel/`, `app/src/ui/styles.css` | ✅ `5c3be0e` |
+| 5 | LLM adapter + chat sidebar | `app/src/llm/` (new), `app/src/ui/chat/` (new), `app/src/state/store.ts` | ✅ `05466e5` |
+| — | Implementation commits | — | ✅ Complete |
 
 ---
 

@@ -19,8 +19,10 @@ app/node_modules/
 # Env & editor
 .env
 .env.*
+!.env.example
 .idea/
 .vscode/
+.calude/
 
 # Logs
 *.log

@@ -1,4 +1,10 @@
 import { create } from "zustand";
+import type { LlmMessage } from "../llm/openaiAdapter";
+
+export type ChatMessage = LlmMessage & {
+  /** True when this assistant message also updated the canvas config. */
+  appliedConfig?: boolean;
+};
 import type {
   BiosimDocument,
   CrewActivity,
@@ -51,6 +57,9 @@ interface CanvasState {
   rightPanelTab: RightPanelTab;
   rightPanelOpen: boolean;
   paletteOpen: boolean;
+
+  /** LLM chat history — not part of undo history. */
+  chatMessages: ChatMessage[];
   /**
    * Last successful File System Access save handle for the main `.biosim`
    * file — cleared when a new document is loaded. Not available after
@@ -75,6 +84,8 @@ interface CanvasState {
   setRightPanelTab: (tab: RightPanelTab) => void;
   setRightPanelOpen: (open: boolean) => void;
   setPaletteOpen: (open: boolean) => void;
+  addChatMessage: (msg: ChatMessage) => void;
+  clearChat: () => void;
   setAutosaveEnabled: (enabled: boolean) => void;
   undo: () => void;
   redo: () => void;
@@ -133,6 +144,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   rightPanelTab: "properties",
   rightPanelOpen: true,
   paletteOpen: true,
+  chatMessages: [],
 
   setDoc: (doc) =>
     set({
@@ -167,6 +179,9 @@ export const useCanvasStore = create<CanvasState>((set) => ({
   setRightPanelTab: (tab) => set({ rightPanelTab: tab }),
   setRightPanelOpen: (open) => set({ rightPanelOpen: open }),
   setPaletteOpen: (open) => set({ paletteOpen: open }),
+  addChatMessage: (msg) =>
+    set((s) => ({ chatMessages: [...s.chatMessages, msg] })),
+  clearChat: () => set({ chatMessages: [] }),
 
   setAutosaveEnabled: (enabled) => {
     saveAutosavePreference(enabled);

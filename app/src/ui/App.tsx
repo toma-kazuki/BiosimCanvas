@@ -22,6 +22,7 @@ import { Timeline } from "./timeline/Timeline";
 import { Review } from "./review/Review";
 import { XmlView } from "./xml-view/XmlView";
 import { Encyclopedia } from "./encyclopedia/Encyclopedia";
+import { LlmChat } from "./chat/LlmChat";
 import type { RightPanelTab } from "../state/store";
 
 interface BundledTemplate {
@@ -427,11 +428,7 @@ export function App() {
           <div className="right-panel-body">
             {rightPanelTab === "properties" && <SidePanel />}
             {rightPanelTab === "encyclopedia" && <Encyclopedia />}
-            {rightPanelTab === "chat" && (
-              <div className="chat-placeholder">
-                <p>LLM chat — coming in Task 5</p>
-              </div>
-            )}
+            {rightPanelTab === "chat" && <LlmChat />}
           </div>
         </div>
       ) : (

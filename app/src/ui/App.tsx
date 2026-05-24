@@ -87,7 +87,24 @@ export function App() {
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [sessionOffer, setSessionOffer] = useState<StoredSessionV1 | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [panelWidth, setPanelWidth] = useState(280);
   const openFileRef = useRef<HTMLInputElement>(null);
+
+  const onPanelDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = panelWidth;
+    const onMove = (mv: MouseEvent) => {
+      const next = Math.min(600, Math.max(200, startW + (startX - mv.clientX)));
+      setPanelWidth(next);
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  }, [panelWidth]);
 
   const loadXml = useCallback(
     async (xml: string, sourceName: string) => {
@@ -289,7 +306,10 @@ export function App() {
   );
 
   return (
-    <div className={sessionOffer ? "app app--session-offer" : "app"}>
+    <div
+      className={sessionOffer ? "app app--session-offer" : "app"}
+      style={{ "--right-panel-width": `${rightPanelOpen ? panelWidth : 0}px` } as React.CSSProperties}
+    >
       <div className="appbar">
         <div className="brand">BioSimCanvas</div>
         <div className="filename">{doc?.sourceName ?? "(no file)"}</div>
@@ -405,6 +425,7 @@ export function App() {
       {/* Right panel — three-tab: Properties / Encyclopedia / Chat */}
       {rightPanelOpen ? (
         <div className="right-panel">
+          <div className="right-panel-resize-handle" onMouseDown={onPanelDragStart} />
           <div className="right-panel-tabs">
             {(["properties", "encyclopedia", "chat"] as RightPanelTab[]).map((tab) => (
               <button

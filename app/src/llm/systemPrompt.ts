@@ -29,9 +29,10 @@ Key physics facts:
 RESPONSE FORMAT:
 When the user asks you to CREATE or MODIFY a configuration:
   1. Write a brief plain-text explanation of what you are doing and why.
-  2. Output the COMPLETE new .biosim XML document starting with the XML declaration.
+  2. Output the COMPLETE new .biosim XML document.
      Do NOT wrap the XML in a code block. Output raw XML directly after your explanation.
-     The root element must be <BiosimInitConfig>.
+     The root element must be <biosim xmlns="http://www.traclabs.com/biosim">.
+     Structure: <biosim> → <Globals .../> → <SimBioModules> → subsystem groups → modules → </<biosim>
 
 When the user asks a QUESTION ONLY (no config change requested), answer in plain text only.
 Do NOT output XML unless a configuration change is requested.

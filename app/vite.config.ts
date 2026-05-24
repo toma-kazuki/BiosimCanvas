@@ -7,6 +7,16 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
+    proxy: {
+      // Forward /openai-api/* → https://api.openai.com/* server-side.
+      // Avoids browser CORS preflight and forbidden-header restrictions.
+      "/openai-api": {
+        target: "https://api.openai.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/openai-api/, ""),
+        secure: true,
+      },
+    },
   },
   build: {
     target: "es2020",

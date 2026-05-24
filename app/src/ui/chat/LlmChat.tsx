@@ -153,7 +153,9 @@ export function LlmChat() {
         ))}
         {loading && (
           <div className="llm-msg llm-msg-assistant llm-thinking">
-            <span className="llm-dot" /><span className="llm-dot" /><span className="llm-dot" />
+            <div className="llm-msg-content">
+              <span className="llm-dot" /><span className="llm-dot" /><span className="llm-dot" />
+            </div>
           </div>
         )}
       </div>

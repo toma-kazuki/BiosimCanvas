@@ -16,6 +16,13 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/openai-api/, ""),
         secure: true,
       },
+      // Forward /biosim-api/* → http://localhost:8009/* server-side.
+      // BioSim server does not send CORS headers, so all calls go through here.
+      "/biosim-api": {
+        target: "http://localhost:8009",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/biosim-api/, ""),
+      },
     },
   },
   build: {

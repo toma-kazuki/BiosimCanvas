@@ -135,6 +135,45 @@ button.primary:hover {
   flex: 1;
 }
 
+.run-btn {
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 14px;
+  border-radius: 6px;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+
+.run-btn--idle,
+.run-btn--running {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.run-btn--running {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.run-btn--success {
+  background: #1a3d2b;
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.run-btn--success:hover {
+  background: #1f4a33;
+  border-color: var(--ok);
+}
+
+.run-btn--error {
+  background: #3d1a1a;
+  border-color: var(--err);
+  color: var(--err);
+}
+.run-btn--error:hover {
+  background: #4a1f1f;
+  border-color: var(--err);
+}
+
 .palette,
 .side {
   background: var(--surface);

@@ -17,6 +17,7 @@ import { ViewSwitcher } from "./common/ViewSwitcher";
 import { KeyboardShortcutsModal } from "./common/KeyboardShortcutsModal";
 import { exportCanvasViewPng } from "./common/exportViewPng";
 import { viewFromDigit } from "./common/views";
+import { runBiosim } from "../io/biosimRunner";
 import { Spatial } from "./spatial/Spatial";
 import { Timeline } from "./timeline/Timeline";
 import { Review } from "./review/Review";
@@ -88,7 +89,25 @@ export function App() {
   const [sessionOffer, setSessionOffer] = useState<StoredSessionV1 | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [panelWidth, setPanelWidth] = useState(280);
+  const [runState, setRunState] = useState<
+    | { status: "idle" }
+    | { status: "running" }
+    | { status: "success"; simId: number }
+    | { status: "error"; message: string }
+  >({ status: "idle" });
   const openFileRef = useRef<HTMLInputElement>(null);
+
+  const handleRun = useCallback(async () => {
+    if (!doc) return;
+    setRunState({ status: "running" });
+    const xml = emitBiosim(doc);
+    const result = await runBiosim(xml);
+    if (result.ok) {
+      setRunState({ status: "success", simId: result.simId });
+    } else {
+      setRunState({ status: "error", message: result.message });
+    }
+  }, [doc]);
 
   const onPanelDragStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -358,6 +377,27 @@ export function App() {
           onClick={() => saveBiosim(true)}
         >
           Save as…
+        </button>
+        <button
+          type="button"
+          className={`run-btn run-btn--${runState.status}`}
+          onClick={() => void handleRun()}
+          disabled={!doc || runState.status === "running"}
+          title={
+            runState.status === "error"
+              ? runState.message
+              : runState.status === "success"
+              ? `Running — sim ID ${runState.simId}`
+              : "Send current configuration to BioSim server and start a simulation"
+          }
+        >
+          {runState.status === "running"
+            ? "Running…"
+            : runState.status === "success"
+            ? `▶ sim #${runState.simId}`
+            : runState.status === "error"
+            ? "⚠ Run failed"
+            : "▶ Run"}
         </button>
       </div>
 
